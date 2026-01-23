@@ -2,14 +2,20 @@
 #include "stdlib.h"
 #include "math.h"
 
-void switch_rows(double A[][3], int r1, int r2);
+void switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);
+void update_global_permutation_vector(int N, const int P_update[N], int P[N]);
 void multiply_row(double A[][3], int r, double k);
-void add_multiple_of_row_to_row(int N, int M, double A[N][M], int from_row, int to_row, double k); //Convert to mxn DONE
+void add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k);
+void permute_vector_with_P(int N, int P[N], double b[N]);
 void printmat(int N, int M, const double A[N][M]);
-void printvec(int n,double v[3]);
+void printvec(int N, double v[N]);
+void printvec_int(int N, int v[N]);
 void LU_decomposition(int N, int M, double A[N][M], double L[N][M], double U[N][M]);
 int PLU_decomposition_NXN(int N, double A[N][N], double P[N][N], double L[N][N], double U[N][N]);
+int PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);
+void kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);
 void find_permutation_matrix(int N, int diagonal_elem_kk, double M[N][N], double P[N][N]);
+void find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);
 void eye(int N,double A[N][N]);
 void zeromat(int N, int M,double A[N][M]); //Convert to mxn DONE
 void matcopy(int N, int M, const double A[N][M], double B[N][M]); //Convert to mxn DONE
@@ -33,6 +39,7 @@ void print_PLU_decomp(int N, double A[N][N], double P[N][N], double L[N][N], dou
 void solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
 void solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);
 void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N]);
+void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]);
 void matvecmul(int N, int M, double A[N][M], double x[M], double b[N]); //Convert to mxn DONE
 void zerovec(int N, double x[N]);
 void veccopy(int N, double a[N], double b[N]);
@@ -40,11 +47,13 @@ void mat_transpose(int N, int M, double A[N][M], double AT[M][N]); //Convert to 
 void matscalmult(int N, int M, double A[N][M], double k, double C[N][M]);
 void vecscalmult(int N, double x[N], double y[N], double k);
 void test_updated_functions();
+
+
 //Takes in 
 // - Optimization variable count,9 for ellipsoid. 
 // - An array containing the variables
 // - A magnetometer sample si of 3 parameters
-
+// - This should probably be given a struct to work with as the argument lists are getting long
 double evaluate_ri(int param_count, double opt_params[param_count], double si[3]);
 void evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], double samples[sample_count][3], double r_vec[sample_count]);
 void evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);
@@ -57,6 +66,7 @@ double J[10][9];
 double JT[9][10];
 double JTJ[9][9];
 
+
 int main()
 {
     // double A[3][3];
@@ -67,27 +77,33 @@ int main()
     // double x[3];
     // solve_linear_system_NXN(3,A,x,b);
     // printvec(3,x);
-    // test_updated_functions();
-    LM_solver();
+    test_updated_functions();
+    // int N = 4;
+    // int P0[4] = {1,0,2,3};
+    // int P_global[4] = {0,1,2,3};
+    // update_global_permutation_vector(N,P0,P_global);
+    // printvec_int(N,P_global);
+    // update_global_permutation_vector(N,P0,P_global);
+    // printvec_int(N,P_global);
+    // LM_solver();
     printf("END OF PROGRAM\n");
     return 0;
 }
 
 void test_updated_functions()
 {
-    int N = 2;
-    int M = 5;
+    int N = 4;
+    int M = 4;
     double A[N][M]; //VLA init, goes on the stack
     double A_transposed[M][N];
     double AAT[N][N];
     zeromat(N,M,A);
     zeromat(M,N,A_transposed);
     zeromat(N,N,AAT);
-    for(int i = 0; i < N; i++){
-        for(int j = 0; j < M; j++){
-            A[i][j] = i*M + j;
-        }
-    }
+    set_4x4_mat(4,3,5,0,
+                1,5,0,9,
+                3,1,7,4,
+                5,3,1,1,A);
     printf("A = \n");
     printmat(N,M,A);
     mat_transpose(N,M,A,A_transposed);
@@ -99,7 +115,7 @@ void test_updated_functions()
 
     printf("Add multiple of row to row testing\n");
     printmat(N,M,A);
-    add_multiple_of_row_to_row(N,M,A,0,0,1.0);
+    add_multiple_of_row_to_row(N,M,A,0,0,0,1.0);
     printmat(N,M,A);
 
     printf("Testing matscalmult function\n");
@@ -114,6 +130,104 @@ void test_updated_functions()
     vecscalmult(3,s,s,-0.1);
     printvec(3,s);
 
+    //Testing in-place PLU
+    double K[N][N];
+    set_4x4_mat(4,7,5,0,
+                1,5,0,9,
+                3,1,7,4,
+                5,6,1,1,K);
+    int permutation_vector[N];
+    PLU_decomposition_NXN_in_place(N,permutation_vector,K);
+    // double P[N][N];
+    // double L[N][N];
+    // double U[N][N];
+    // PLU_decomposition_NXN(N,K,P,L,U);
+    printf("LU-matrix containing L and U:\n");
+    printmat(N,N,K);
+
+    
+
+}
+
+int PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])
+{
+    int P_local[N]; //Stack alloc, consider changing
+    for(int i = 0; i < N; i++){
+        P[i] = i; //Initialize the permutation vectors
+        P_local[i] = i;
+    }
+    
+    for(int diag_kk = 0; diag_kk < N - 1; diag_kk++){
+        for(int i = 0; i < N; i++) P_local[i] = i; //Reset the local permutation vector
+        find_permutation_vector(N, diag_kk, P_local, LUMat);
+        switch_rows_with_P_below_diag(N, diag_kk, P_local, LUMat);
+        kill_column_below_in_place(N, diag_kk, LUMat);
+        printf("Iteration = %d\nLUMat current state is:\n", diag_kk);
+        printmat(N,N,LUMat);
+        update_global_permutation_vector(N, P_local, P);
+    }
+    //Add check the rank of U, do this by checking the fabs() of each pivot
+    int rank = 0;
+    for(int diag_kk = 0; diag_kk < N; diag_kk++){
+        if(fabs(LUMat[diag_kk][diag_kk]) > 0.0){
+            rank++;
+        }
+    }
+    return rank;
+}
+
+void find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N])
+{
+    if(diag_kk > (N - 2)){
+        printf("Error: Invalid index for finding largest pivot! Returning\n");
+        return;
+    }
+
+    //P works in such a way that P = [0 1 2] corresponds to no row changes
+    //P = [1 0 2] corresponds to row 1 being in 0th position and row 0 in 1st position
+
+    //Find the largest element below and including diagonal element diag_kk
+    double largest = 0.0;
+    int largest_element_index = 0;
+    for(int below_diag_kk = diag_kk; below_diag_kk < N; below_diag_kk++){
+        double element = fabs(LUMat[below_diag_kk][diag_kk]);
+        if(element > largest){
+            largest = element;
+            largest_element_index = below_diag_kk;
+        }
+    }
+
+    if(largest_element_index > 0){//Update P. If largest element == 0, the diagonal element is the largest and no update will be done
+        int tmp = P[diag_kk];
+        P[diag_kk] = largest_element_index;
+        P[largest_element_index] = tmp;
+    }
+}
+
+void update_global_permutation_vector(int N, const int P_update[N], int P[N])
+{
+    //This function is only designed to accomododate one row exchange!
+    //I.e P_update can not be equal to [1 0 3 2] as this corresponds to 2 row exchanges
+    int index_mismatch = 0;
+    const int max_switches = 2;
+    for(int i = 0; i < N; i++){
+        if(P_update[i] != i){
+            index_mismatch++;
+        }
+        if(index_mismatch > max_switches){
+            printf("Error: Invalid P_update passed to update_global_permutation_vector; it attempts more than one row exchange, aborting\n");
+            return;
+        }
+    }
+
+    for(int i = 0; i < N; i++){
+        if(P_update[i] != i){ //If P_update[i] = i, no rows should change
+            int tmp = P[i];
+            P[i] = P[P_update[i]];
+            P[P_update[i]] = tmp;
+            break;
+        }
+    }
 }
 
 void LM_solver()
@@ -174,7 +288,7 @@ void LM_solver()
     double deltaX[9];
     solve_linear_system_NXN(9,A,deltaX,g);
     printf("Solution to (JTJ + l*I)deltax = - g is \n");
-    printvec(9,deltaX);
+    printvec(9,deltaX); //Is correct!
 
     
 
@@ -261,6 +375,25 @@ double evaluate_ri(int param_count, double opt_params[param_count], double si[3]
     return ri;
 }
 
+void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N])
+{
+    //P*L*U*x = b
+    //L*U*x = transpose(P)*b = c
+    //U*x = y
+    //L*y = c solve for y, then solve for x
+    int P[N];
+    double c[N];
+    double y[N];
+    int rank = PLU_decomposition_NXN_in_place(N,P,A);
+    if(rank < N){
+        printf("System is rank-deficient!\n");
+    }else{
+        permute_vector_with_P();
+        solve_lower_diagonal(N,A,y,c);
+        solve_upper_diagonal(N,A,x,y);
+    }
+}
+
 void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N])
 {
     //P*L*U*x = b
@@ -280,6 +413,20 @@ void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N])
         matvecmul(N,N,P,b,c);
         solve_lower_diagonal(N,L,y,c);
         solve_upper_diagonal(N,U,x,y);
+    }
+}
+
+void permute_vector_with_P(int N, int P[N], double b[N])
+{
+    double tmp;
+    for(int i = 0; i < N; i++){
+        if(P[i] != i && i < N - 1){
+            tmp = b[P[i]];
+            b[P[i]] = b[i];
+        }else if(i == N - 1){
+            
+        }
+        
     }
 }
 
@@ -503,13 +650,27 @@ int PLU_decomposition_NXN(int N, double A[N][N], double P[N][N], double L[N][N],
     return rank;
 }
 
+void kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N])
+{
+    for(int k = diag_kk + 1; k < N; k++){
+        double LUMat_kk = LUMat[diag_kk][diag_kk];
+        if(LUMat_kk != 0){ //<----- This should be slightly larger than 0; eps
+            double factor = - LUMat[k][diag_kk]/LUMat_kk;
+            add_multiple_of_row_to_row(N,N,LUMat,diag_kk,diag_kk,k,factor);
+            //We need to add the negative of factor to L in order to keep the expression unchanged
+            //Remember that for in-place, we store both L and U in the same matrix
+            LUMat[k][diag_kk] = - factor;
+        }
+    }
+}
+
 void kill_column_below(int N, int diag_kk, double U[N][N], double L[N][N])
 {
     for(int k = diag_kk + 1; k < N; k++){
         double U_kk = U[diag_kk][diag_kk];
         if(U_kk != 0){ //<----- This should be slightly larger than 0; eps
             double factor = - U[k][diag_kk]/U_kk;
-            add_multiple_of_row_to_row(N,N,U,diag_kk,k,factor);
+            add_multiple_of_row_to_row(N,N,U,0,diag_kk,k,factor);
             //We need to add the negative of factor to L in order to keep the expression unchanged:
             L[k][diag_kk] = - factor;
         }
@@ -526,18 +687,18 @@ void LU_decomposition(int N, int M, double A[N][M], double L[N][M], double U[N][
     //printmat(U);
     //Step 1: Remove the leftmost element of the second row
     double fac = - U[1][0]/U[0][0];
-    add_multiple_of_row_to_row(N,M,U,0,1,fac);
+    add_multiple_of_row_to_row(N,M,U,0,0,1,fac);
     //printmat(U);
     L[1][0] = - fac;
     //Step 2: Remove the leftmost element of the third row
     fac = - U[2][0]/U[0][0];
-    add_multiple_of_row_to_row(N,M, U,0,2,fac);
+    add_multiple_of_row_to_row(N,M, U,0,0,2,fac);
     //printmat(U);
     L[2][0] = - fac;
 
     //Step 3: Remove the middle element of the third row
     fac = - U[2][1]/U[1][1];
-    add_multiple_of_row_to_row(N,M, U,1,2,fac);
+    add_multiple_of_row_to_row(N,M, U,0,1,2,fac);
     L[2][1] = - fac;
     //printmat(U);
     //printmat(L);
@@ -609,14 +770,14 @@ void matmatadd(int N, int M, double A[N][M], double B[N][M], double C[N][M]){
     }
 }
 
-void add_multiple_of_row_to_row(int N, int M, double A[N][M], int from_row, int to_row, double k)
-{   //TODO: Add check for whether from_row and to_row are within the matrix. Also add M
+void add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k)
+{
     if(from_row < 0 || from_row >= N || to_row < 0 || to_row >= N){
         printf("Error: from_rom/to_row outside of matrix dimenions in add_multiple_of_row_to_row, exiting\n");
         return;
     }
 
-    for(int i = 0; i < M; i++){
+    for(int i = row_start_index; i < M; i++){
         A[to_row][i] += A[from_row][i]*k;
     }
 }
@@ -652,13 +813,19 @@ void multiply_row(double A[][3], int r, double k)
     }
 }
 
-void switch_rows(double A[][3], int r1, int r2)
+void switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N])
 {
-    //Switching rows 0 and 2;
-    for(int i = 0; i < 3; i++){
-        double tmp = A[r1][i];
-        A[r1][i] = A[r2][i];
-        A[r2][i] = tmp;
+    int M = N;
+
+    for(int i = diag_kk; i < N; i++){ //Only check/switch rows starting from the diagonal index
+        if(P[i] != i){
+            for(int j = 0; j < M; j++){
+                double tmp = A[i][j];
+                A[i][j] = A[P[i]][j];
+                A[P[i]][j] = tmp;
+            }
+            break; //Exit the loop when a row swap has been performed
+        }
     }
 }
 
@@ -677,25 +844,16 @@ void printmat(int N, int M, const double A[N][M]){
     printf("\n");
 }
 
-void printvec(int n,double v[3]){
-    for(int i = 0; i < n; i++){
+void printvec(int N, double v[N]){
+    for(int i = 0; i < N; i++){
         printf("[%.5f]\n",v[i]);
     }
     printf("\n");
 }
 
-
-
-    // set_3x3_mat(1.0, 2.0, 2.0, 
-    //             7.0, 2.0, 1.0,
-    //             7.0, 3.0, 3.0, R0);
-
-        // double R0[3][3];
-    // double R1[3][3];
-    // double R2[3][3];
-    // double ans[3][3];
-    // set_3x3_mat(1.0, 2.0, 2.0, 7.0, 2.0, 1.0, 7.0, 3.0, 3.0, R0);
-    // set_3x3_mat(1.0, 3.0, 3.0, 6.0, 2.0, 5.0, 9.0, 7.0, 3.0, R1);
-    // set_3x3_mat(7.0, 6.0, 8.0, 1.0, 2.0, 3.0, 1.0, 3.0, 3.0, R2);
-    // matmatmatmul_NXN(3,R0,R1,R2,R2);
-    // printmat(3,3,R2);
+void printvec_int(int N, int v[N]){
+    for(int i = 0; i < N; i++){
+        printf("[%d]\n",v[i]);
+    }
+    printf("\n");
+}
