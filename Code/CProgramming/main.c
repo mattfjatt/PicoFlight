@@ -136,15 +136,26 @@ void test_updated_functions()
                 1,5,0,9,
                 3,1,7,4,
                 5,6,1,1,K);
-    int permutation_vector[N];
-    PLU_decomposition_NXN_in_place(N,permutation_vector,K);
-    // double P[N][N];
-    // double L[N][N];
-    // double U[N][N];
-    // PLU_decomposition_NXN(N,K,P,L,U);
-    printf("LU-matrix containing L and U:\n");
-    printmat(N,N,K);
 
+    int permutation_vector[N];
+    // PLU_decomposition_NXN_in_place(N,permutation_vector,K);
+    // // double P[N][N];
+    // // double L[N][N];
+    // // double U[N][N];
+    // // PLU_decomposition_NXN(N,K,P,L,U);
+    // printf("LU-matrix containing L and U:\n");
+    // printmat(N,N,K);
+    int n = 7;
+    //int perm[7] = {0, 3, 2, 5, 4, 1, 6};
+    int perm[7] = {6, 3, 0, 5, 2, 1, 4};
+    double bvec[7] = {0, 1, 2, 3, 4, 5, 6};
+    printf("b before = \n");
+    printvec(n,bvec);
+    permute_vector_with_P(n,perm,bvec);
+    printf("b after = \n");
+    printvec(n,bvec);
+    printf("P after = \n");
+    printvec_int(n,perm);
     
 
 }
@@ -388,7 +399,7 @@ void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double
     if(rank < N){
         printf("System is rank-deficient!\n");
     }else{
-        permute_vector_with_P();
+        //permute_vector_with_P();
         solve_lower_diagonal(N,A,y,c);
         solve_upper_diagonal(N,A,x,y);
     }
@@ -418,15 +429,29 @@ void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N])
 
 void permute_vector_with_P(int N, int P[N], double b[N])
 {
-    double tmp;
+    //This algorithm overwrites the P vector to save space
+    //This part follows a loop of updates in the array and sets visited elements to -1 in P
     for(int i = 0; i < N; i++){
-        if(P[i] != i && i < N - 1){
-            tmp = b[P[i]];
-            b[P[i]] = b[i];
-        }else if(i == N - 1){
-            
+        //int i = 0;
+        if(P[i] != -1){
+            int set_start = 1;
+            int i_start = -1;
+            double tmp = b[i];
+            while(P[i] != i_start && P[i] != i){
+                if(set_start){
+                    i_start = i;
+                    tmp = b[i];
+                    set_start = 0;
+                }
+                printf("b%d should equal b%d\n", i,P[i]);
+                b[i] = b[P[i]];
+                int tmp2 = P[i];
+                P[i] = -1 ;
+                i = tmp2;
+            }
+            b[i] = tmp;
+            P[i] = -1;
         }
-        
     }
 }
 
