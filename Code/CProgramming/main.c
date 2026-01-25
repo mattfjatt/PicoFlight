@@ -148,6 +148,7 @@ void test_updated_functions()
     int n = 7;
     //int perm[7] = {0, 3, 2, 5, 4, 1, 6};
     int perm[7] = {6, 3, 0, 5, 2, 1, 4};
+    //int perm[7] = {6, 1, 0, 3, 2, 5, 4};
     double bvec[7] = {0, 1, 2, 3, 4, 5, 6};
     printf("b before = \n");
     printvec(n,bvec);
@@ -429,28 +430,44 @@ void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N])
 
 void permute_vector_with_P(int N, int P[N], double b[N])
 {
-    //This algorithm overwrites the P vector to save space
-    //This part follows a loop of updates in the array and sets visited elements to -1 in P
-    for(int i = 0; i < N; i++){
-        //int i = 0;
-        if(P[i] != -1){
-            int set_start = 1;
-            int i_start = -1;
-            double tmp = b[i];
-            while(P[i] != i_start && P[i] != i){
-                if(set_start){
-                    i_start = i;
+    //This algorithm overwrites the P vector to save space.
+
+    //There are two ways to interpret the effect of P on b:
+    //1: P[i] tells where element b[i] goes in the updated b. Ie: b[P[i]] = b[i]
+    //2: P[i] tells which element of b goes to b[i].          Ie: b[i] = b[P[i]]
+
+    //Example 1: b = [b0 b1 b2], P = [1 2 0] --> b_updated = [b2 b0 b1]
+    //Example 2: b = [b0 b1 b2], P = [1 2 0] --> b_updated = [b1 b2 b0] <-- This is what we use
+
+    //This part follows a chain of updates in the array and sets visited elements to -1 in P
+    for(int j = 0; j < N; j++){
+        if(P[j] != - 1 && P[j] != j){
+            int i = j;
+            int start_index = - 1;
+            int permutation_index_set_to_negative = -1;
+            int first_iteration = 1;
+            double tmp;
+            while(1){
+                if(first_iteration){
+                    first_iteration = 0;
+                    start_index = i;
                     tmp = b[i];
-                    set_start = 0;
+                    b[i] = b[P[i]];
+                }else{
+                    permutation_index_set_to_negative = i;
+                    i = P[i];
+                    P[permutation_index_set_to_negative] = - 1;
+                    if(P[i] != start_index){
+                        b[i] = b[P[i]];
+                    }else{
+                        b[i] = tmp;
+                        P[i] = - 1;
+                        break;//End of the permutation chain
+                    }
                 }
-                printf("b%d should equal b%d\n", i,P[i]);
-                b[i] = b[P[i]];
-                int tmp2 = P[i];
-                P[i] = -1 ;
-                i = tmp2;
             }
-            b[i] = tmp;
-            P[i] = -1;
+        }else{
+            P[j] = - 1; //This is the case when P[j] = j; nothing needs to be done and we mark it as visited
         }
     }
 }
@@ -882,3 +899,4 @@ void printvec_int(int N, int v[N]){
     }
     printf("\n");
 }
+
