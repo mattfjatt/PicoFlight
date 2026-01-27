@@ -6,21 +6,21 @@ uint16_t ServoArray[4] = {SERVO_0, SERVO_1, SERVO_2, SERVO_3};
 
 
 void Controller_init(contStruct* contData){
-    Matrix_eye(contData->Rd);
-    Matrix_eye(contData->Rd_T);
-    Matrix_eye(contData->I_hat);
-    Matrix_zeromat(contData->E_hat);
-    Matrix_zeromat(contData->Kp);
-    Matrix_zeromat(contData->Kd);
-    Matrix_zeromat(contData->Ki);
+    LinAlg_eye(contData->Rd);
+    LinAlg_eye(contData->Rd_T);
+    LinAlg_eye(contData->I_hat);
+    LinAlg_zeromat(contData->E_hat);
+    LinAlg_zeromat(contData->Kp);
+    LinAlg_zeromat(contData->Kd);
+    LinAlg_zeromat(contData->Ki);
 
-    Matrix_zerovec(contData->e_hat);
-    Matrix_zerovec(contData->tau);
-    Matrix_zerovec(contData->Kp_e_hat);
-    Matrix_zerovec(contData->Kd_w_hat);
-    Matrix_zerovec(contData->e_w_hat);
-    Matrix_zerovec(contData->euler);
-    Matrix_zerovec(contData->e_i_hat);
+    LinAlg_zerovec(contData->e_hat);
+    LinAlg_zerovec(contData->tau);
+    LinAlg_zerovec(contData->Kp_e_hat);
+    LinAlg_zerovec(contData->Kd_w_hat);
+    LinAlg_zerovec(contData->e_w_hat);
+    LinAlg_zerovec(contData->euler);
+    LinAlg_zerovec(contData->e_i_hat);
 
     //Set gains:
     contData->Kp[0][0] = - KpX;
@@ -74,8 +74,8 @@ void Controller_init(contStruct* contData){
 }
 
 void Controller_get_e_hat(contStruct* contData, estStruct* estData){
-    Matrix_transpose(contData->Rd, contData->Rd_T);
-    Matrix_matmatmul(contData->Rd_T, estData->R_hat, contData->E_hat);
+    LinAlg_transpose(contData->Rd, contData->Rd_T);
+    LinAlg_matmatmul(contData->Rd_T, estData->R_hat, contData->E_hat);
     //Extract the error vector e_hat from E_hat:
     contData->e_hat[0] = 0.5*(contData->E_hat[2][1] - contData->E_hat[1][2]);
     contData->e_hat[1] = 0.5*(contData->E_hat[0][2] - contData->E_hat[2][0]);
@@ -89,9 +89,9 @@ void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, flo
     }
     //e_i_hat = e_i_hat + h*Ki*e_hat
     float temp[3];
-    Matrix_matvecmul(contData->Ki, contData->e_hat, temp); //temp = Ki*e_hat
-    Matrix_vecscalmult(temp, temp, h); //temp = h*Ki*e_hat
-    Matrix_vecvecadd(contData->e_i_hat, temp, contData->e_i_hat); //e_i_hat = e_i_hat + temp 
+    LinAlg_matvecmul(contData->Ki, contData->e_hat, temp); //temp = Ki*e_hat
+    LinAlg_vecscalmult(temp, temp, h); //temp = h*Ki*e_hat
+    LinAlg_vecvecadd(contData->e_i_hat, temp, contData->e_i_hat); //e_i_hat = e_i_hat + temp 
 
     //anti wind-up
     for(int i = 0; i < 3; i++){
@@ -107,11 +107,11 @@ void Controller_get_tau(contStruct* contData, estStruct* estData){
     //tau = I_hat*(- Kp*e_hat - Kd*w_hat - Ki*e_i_hat) + S(I_hat*w_hat)*w_hat <- ignoring the skew part:)
     float temp[3];
     Controller_get_e_hat(contData, estData);
-    Matrix_matvecmul(contData->Kp, contData->e_hat, contData->Kp_e_hat);
-    Matrix_matvecmul(contData->Kd, estData->w_hat_f, contData->Kd_w_hat); //Using the filtered w_hat for the derivative part
-    Matrix_vecvecadd(contData->Kp_e_hat, contData->Kd_w_hat, temp);
-    Matrix_vecvecadd(contData->e_i_hat, temp, contData->tau); //Ki is already multiplied elsewhere
-    Matrix_matvecmul(contData->I_hat, contData->tau, contData->tau);
+    LinAlg_matvecmul(contData->Kp, contData->e_hat, contData->Kp_e_hat);
+    LinAlg_matvecmul(contData->Kd, estData->w_hat_f, contData->Kd_w_hat); //Using the filtered w_hat for the derivative part
+    LinAlg_vecvecadd(contData->Kp_e_hat, contData->Kd_w_hat, temp);
+    LinAlg_vecvecadd(contData->e_i_hat, temp, contData->tau); //Ki is already multiplied elsewhere
+    LinAlg_matvecmul(contData->I_hat, contData->tau, contData->tau);
 }
 
 void Controller_control_alloc_tricopter(contStruct* contData){
@@ -160,7 +160,7 @@ void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStru
         return;
     }
 
-    //Get desired input from R/C receiver and convert to desired rotation matrix Rd
+    //Get desired input from R/C receiver and convert to desired rotation LinAlg Rd
     contData->euler[0] =   ((int)recData->pulse_width[3] - 1501)/10.0f/180.0f*PI; //Roll
     contData->euler[1] = - ((int)recData->pulse_width[2] - 1513)/10.0f/180.0f*PI; //Pitch
 
@@ -251,7 +251,7 @@ void Controller_reset_integrated_setpoints(contStruct* contData)
     //the angle is simply integrated and sent to the controller, this means that when arming, the yaw angle is integrated for at least 
     //two seconds, leading to a very large heading error internal to the controller. To mitigate this, we reset all input angles to 0
     //when the throttle is below TCutoff:
-    Matrix_zerovec(contData->euler);
+    LinAlg_zerovec(contData->euler);
 }
 
 void Controller_check_for_arming(contStruct* contData, recStruct* recData, float h)
@@ -270,12 +270,12 @@ void Controller_check_for_arming(contStruct* contData, recStruct* recData, float
 
 void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruct* estData)
 {
-    //Get desired input from R/C receiver and convert to desired rotation matrix Rd
+    //Get desired input from R/C receiver and convert to desired rotation LinAlg Rd
     float eul[3] = {0.0f, 0.0f, 0.0f};
     eul[0] =   ((int)recData->pulse_width[1] - 1500)/10.0f/180.0f*PI; //Roll
     eul[1] = - ((int)recData->pulse_width[3] - 1500)/10.0f/180.0f*PI; //Pitch
     eul[2] = - ((int)recData->pulse_width[2] - 1500)/10.0f/180.0f*PI; //Yaw
-    Matrix_eye(contData->Rd);
+    LinAlg_eye(contData->Rd);
     Estimator_euler_to_R(eul, contData->Rd); 
     
     //Get the desired torque tau

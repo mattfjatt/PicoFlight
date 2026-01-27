@@ -3,7 +3,7 @@
 
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
-#include "headers/Matrix.h"
+#include "headers/LinAlg.h"
 #include "headers/Servo.h"
 #include "headers/Config.h"
 #include <stdlib.h>

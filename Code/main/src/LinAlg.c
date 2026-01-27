@@ -1,6 +1,6 @@
-#include "headers/Matrix.h"
+#include "headers/LinAlg.h"
 
-void Matrix_zeromat(float A[][3]){
+void LinAlg_zeromat(float A[][3]){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             A[i][j]= 0;
@@ -8,14 +8,14 @@ void Matrix_zeromat(float A[][3]){
     }
 }
 
-void Matrix_zerovec(float x[3]){
+void LinAlg_zerovec(float x[3]){
     for(int i = 0; i < 3; i++){
         x[i] = 0;
     }
 }
 
-void Matrix_eye(float A[][3]){
-    Matrix_zeromat(A);
+void LinAlg_eye(float A[][3]){
+    LinAlg_zeromat(A);
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             if(i == j){
@@ -25,22 +25,22 @@ void Matrix_eye(float A[][3]){
     }
 }
 
-void Matrix_matvecmul(float A[][3], float x[3], float b[3]){
+void LinAlg_matvecmul(float A[][3], float x[3], float b[3]){
     //A: double array, x: single array
     float temp[3]; //Just use b instead of temp?
-    Matrix_zerovec(temp); //Set temp = [0 0 0]
+    LinAlg_zerovec(temp); //Set temp = [0 0 0]
     //printvec(temp);
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             temp[i] += A[i][j]*x[j];
         }
     }
-    Matrix_veccopy(temp,b);
+    LinAlg_veccopy(temp,b);
 }
 
-void Matrix_matmatmul(float A[][3], float B[][3], float C[][3]){
+void LinAlg_matmatmul(float A[][3], float B[][3], float C[][3]){
     float temp[3][3];
-    Matrix_zeromat(temp); //temp set to be all zeroes
+    LinAlg_zeromat(temp); //temp set to be all zeroes
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             for(int k = 0; k < 3; k++){
@@ -48,28 +48,28 @@ void Matrix_matmatmul(float A[][3], float B[][3], float C[][3]){
             }
         }
     }
-    Matrix_matcopy(temp,C);
+    LinAlg_matcopy(temp,C);
 }
 
-void Matrix_vecvecadd(float a[3], float b[3], float c[3]){
+void LinAlg_vecvecadd(float a[3], float b[3], float c[3]){
     for(int i = 0; i < 3; i++){
         c[i] = a[i] + b[i];
     }
 };
 
-void Matrix_vecvecsub(float a[3], float b[3],float c[3]){
+void LinAlg_vecvecsub(float a[3], float b[3],float c[3]){
     for(int i = 0; i < 3; i++){
         c[i] = a[i] - b[i];
     }
 };
 
-void Matrix_vecscalmult(float x[3], float y[3], float k){
+void LinAlg_vecscalmult(float x[3], float y[3], float k){
     for(int i = 0; i < 3; i++){
         y[i] = k*x[i];
     }
 }
 
-float Matrix_vecdot(float a[3], float b[3]){
+float LinAlg_vecdot(float a[3], float b[3]){
     float c = 0;
     for(int i = 0; i < 3; i++){
         c += a[i]*b[i];
@@ -77,7 +77,7 @@ float Matrix_vecdot(float a[3], float b[3]){
     return c;
 }
 
-void Matrix_matmatadd(float A[][3], float B[][3], float C[][3]){
+void LinAlg_matmatadd(float A[][3], float B[][3], float C[][3]){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             C[i][j] = A[i][j] + B[i][j];
@@ -85,7 +85,7 @@ void Matrix_matmatadd(float A[][3], float B[][3], float C[][3]){
     }
 }
 
-void Matrix_matmatsub(float A[][3], float B[][3], float C[][3]){
+void LinAlg_matmatsub(float A[][3], float B[][3], float C[][3]){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             C[i][j] = A[i][j] - B[i][j];
@@ -93,7 +93,7 @@ void Matrix_matmatsub(float A[][3], float B[][3], float C[][3]){
     }
 }
 
-void Matrix_matscalmult(float A[][3], float k, float C[][3]){
+void LinAlg_matscalmult(float A[][3], float k, float C[][3]){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             C[i][j] = k*A[i][j];
@@ -101,7 +101,7 @@ void Matrix_matscalmult(float A[][3], float k, float C[][3]){
     }
 }
 
-void Matrix_mat2colvecs(float R[][3], float r1[3], float r2[3], float r3[3]){
+void LinAlg_mat2colvecs(float R[][3], float r1[3], float r2[3], float r3[3]){
     for(int i = 0; i < 3; i++){
         r1[i] = R[i][0];
         r2[i] = R[i][1];
@@ -109,7 +109,7 @@ void Matrix_mat2colvecs(float R[][3], float r1[3], float r2[3], float r3[3]){
     }
 }
 
-void Matrix_colvecs2mat(float R[][3], float r1[3], float r2[3], float r3[3]){
+void LinAlg_colvecs2mat(float R[][3], float r1[3], float r2[3], float r3[3]){
     for(int i = 0; i < 3; i++){
         R[i][0] = r1[i];
         R[i][1] = r2[i];
@@ -117,44 +117,44 @@ void Matrix_colvecs2mat(float R[][3], float r1[3], float r2[3], float r3[3]){
     }
 }
 
-void Matrix_matnormalize(float R[][3]){
+void LinAlg_matnormalize(float R[][3]){
     //Crude method of ensuring R remains in SO(3)
     float r1[3], r2[3], r3[3];
     float u1[3], u2[3], u3[3];
     float k1, k2, k3;
     float k1u1[3], k2u1[3], k3u2[3];
-    Matrix_mat2colvecs(R, r1, r2, r3);
+    LinAlg_mat2colvecs(R, r1, r2, r3);
     //u1 = r1;
-    Matrix_veccopy(r1,u1);
+    LinAlg_veccopy(r1,u1);
 
     //u2 = r2 - k1*u1
     //k1 = (r2*u1)/(u1*u1)
-    k1 = Matrix_vecdot(r2,u1)/Matrix_vecdot(u1,u1);
-    Matrix_vecscalmult(u1,k1u1, k1);
-    Matrix_vecvecsub(r2,k1u1,u2);
+    k1 = LinAlg_vecdot(r2,u1)/LinAlg_vecdot(u1,u1);
+    LinAlg_vecscalmult(u1,k1u1, k1);
+    LinAlg_vecvecsub(r2,k1u1,u2);
 
     //u3 = r3 - (r3*u1)/(u1*u1)*u1 - (r3*u2)/(u2*u2)*u2
     //u3 = r3 - k2*u1 - k3*u2;
     //k2 = (r3*u1)/(u1*u1)
     //k3 = (r3*u2)/(u2*u2)
-    k2 = Matrix_vecdot(r3,u1)/Matrix_vecdot(u1,u1);
-    k3 = Matrix_vecdot(r3,u2)/Matrix_vecdot(u2,u2);
-    Matrix_vecscalmult(u1,k2u1, k2);
-    Matrix_vecscalmult(u2,k3u2, k3);
-    Matrix_veccopy(r3,u3);
-    Matrix_vecvecsub(u3,k2u1,u3);
-    Matrix_vecvecsub(u3,k3u2,u3);
+    k2 = LinAlg_vecdot(r3,u1)/LinAlg_vecdot(u1,u1);
+    k3 = LinAlg_vecdot(r3,u2)/LinAlg_vecdot(u2,u2);
+    LinAlg_vecscalmult(u1,k2u1, k2);
+    LinAlg_vecscalmult(u2,k3u2, k3);
+    LinAlg_veccopy(r3,u3);
+    LinAlg_vecvecsub(u3,k2u1,u3);
+    LinAlg_vecvecsub(u3,k3u2,u3);
 
     //Normalize the orthogonal vectors 
-    Matrix_normalize(u1,u1);
-    Matrix_normalize(u2,u2);
-    Matrix_normalize(u3,u3);
+    LinAlg_normalize(u1,u1);
+    LinAlg_normalize(u2,u2);
+    LinAlg_normalize(u3,u3);
     
-    Matrix_colvecs2mat(R,u1,u2,u3);
+    LinAlg_colvecs2mat(R,u1,u2,u3);
 
 }
 
-void Matrix_vec2skew(float x[3], float S[][3]){
+void LinAlg_vec2skew(float x[3], float S[][3]){
     S[0][0] = 0;
     S[1][1] = 0;
     S[2][2] = 0;
@@ -167,7 +167,7 @@ void Matrix_vec2skew(float x[3], float S[][3]){
     S[2][1] =  x[0];
 }
 
-void Matrix_matcopy(float A[][3], float B[][3]){
+void LinAlg_matcopy(float A[][3], float B[][3]){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             B[i][j] = A[i][j];
@@ -175,15 +175,15 @@ void Matrix_matcopy(float A[][3], float B[][3]){
     }
 }
 
-void Matrix_veccopy(float a[3], float b[3]){
+void LinAlg_veccopy(float a[3], float b[3]){
     for(int i = 0; i < 3; i++){
         b[i] = a[i];
     }
 }
 
-void Matrix_transpose(float A[][3], float AT[][3]){
+void LinAlg_transpose(float A[][3], float AT[][3]){
     float temp_mat[3][3]; 
-    Matrix_matcopy(A,temp_mat);
+    LinAlg_matcopy(A,temp_mat);
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             AT[i][j] = temp_mat[j][i];
@@ -191,19 +191,19 @@ void Matrix_transpose(float A[][3], float AT[][3]){
     }
 }
 
-float Matrix_vecnorm(float x[3]){
+float LinAlg_vecnorm(float x[3]){
     float size = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
     return size;
 }
 
-void Matrix_normalize(float x[3], float x_norm[3]){
-    float size = Matrix_vecnorm(x);
+void LinAlg_normalize(float x[3], float x_norm[3]){
+    float size = LinAlg_vecnorm(x);
     for(int i = 0; i < 3; i++){
         x_norm[i] = x[i]/size;
     }
 }
 
-int Matrix_factorial(int k){
+int LinAlg_factorial(int k){
     int ret = 1;
     if(k > 0){
         for(int i = 1; i <= k; i++){
@@ -216,29 +216,29 @@ int Matrix_factorial(int k){
     return ret;
 }
 
-void Matrix_expm(float A[][3], float eA[][3], int k){
-    Matrix_eye(eA);
+void LinAlg_expm(float A[][3], float eA[][3], int k){
+    LinAlg_eye(eA);
     float B[3][3];
-    Matrix_matcopy(A,B);
+    LinAlg_matcopy(A,B);
     float Bs[3][3]; //scaled B
     float scale = 0;
     for(int i = 1; i <= k; i++){
-        scale = 1.0/Matrix_factorial(i);
-        Matrix_matscalmult(B,scale,Bs); //Bs = scale*B;
-        Matrix_matmatadd(eA,Bs,eA);
-        Matrix_matmatmul(B,A,B);
+        scale = 1.0/LinAlg_factorial(i);
+        LinAlg_matscalmult(B,scale,Bs); //Bs = scale*B;
+        LinAlg_matmatadd(eA,Bs,eA);
+        LinAlg_matmatmul(B,A,B);
     }
 }
 
-float Matrix_det(float A[][3]){
+float LinAlg_det(float A[][3]){
     float ret = A[0][0]*(A[1][1]*A[2][2] - A[1][2]*A[2][1]);
     ret = ret - A[0][1]*(A[1][0]*A[2][2] - A[2][0]*A[1][2]);
     ret = ret + A[0][2]*(A[1][0]*A[2][1] - A[2][0]*A[1][1]);
     return ret;
 }
 
-void Matrix_rotX(float t, float R[][3]){
-    Matrix_zeromat(R);
+void LinAlg_rotX(float t, float R[][3]){
+    LinAlg_zeromat(R);
     R[0][0] = 1;
     R[1][1] = cos(t);
     R[2][2] = cos(t);
@@ -246,8 +246,8 @@ void Matrix_rotX(float t, float R[][3]){
     R[1][2] = -sin(t);
 }
 
-void Matrix_rotY(float t, float R[][3]){
-    Matrix_zeromat(R);
+void LinAlg_rotY(float t, float R[][3]){
+    LinAlg_zeromat(R);
     R[1][1] = 1;
     R[0][0] = cos(t);
     R[2][2] = cos(t);
@@ -255,8 +255,8 @@ void Matrix_rotY(float t, float R[][3]){
     R[2][0] = -sin(t);
 }
 
-void Matrix_rotZ(float t, float R[][3]){
-    Matrix_zeromat(R);
+void LinAlg_rotZ(float t, float R[][3]){
+    LinAlg_zeromat(R);
     R[2][2] = 1;
     R[0][0] = cos(t);
     R[1][1] = cos(t);
@@ -264,18 +264,18 @@ void Matrix_rotZ(float t, float R[][3]){
     R[0][1] = -sin(t);
 }
 
-void Matrix_printscal(float a){
+void LinAlg_printscal(float a){
     printf("%.8f\n",a);
 }
 
-void Matrix_printvec(float v[3]){
+void LinAlg_printvec(float v[3]){
     for(int i = 0; i < 3; i++){
         printf("[%.5f]\n",v[i]);
     }
     printf("\n");
 }
 
-void Matrix_printmat(float A[][3]){
+void LinAlg_printmat(float A[][3]){
     for(int i = 0; i < 3; i++){
         printf("[");
         for(int j = 0; j < 3; j++){
@@ -290,7 +290,7 @@ void Matrix_printmat(float A[][3]){
     printf("\n");
 }
 
-void Matrix_printvec_comma_separated(float v[3]){
+void LinAlg_printvec_comma_separated(float v[3]){
     for(int i = 0; i < 2; i++){
         printf("%.8f,",v[i]);
     }

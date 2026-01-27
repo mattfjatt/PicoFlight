@@ -4,7 +4,7 @@
 
 //Custom includes
 #include "headers/MPU6050.h"
-#include "headers/Matrix.h"
+#include "headers/LinAlg.h"
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
 #include "headers/Servo.h"
@@ -24,7 +24,7 @@ int main()
     float bias[3];
     float wRaw[3];
     float empty[3];
-    Matrix_zerovec(empty);
+    LinAlg_zerovec(empty);
     float h = 0.0005f;
     float mat[3][3];
     sleep_ms(1000);
@@ -35,14 +35,14 @@ int main()
         Main_run(&controllerData, &receiverData, &estimatorData, h);
         
         Estimator_R_to_euler(estimatorData.R_hat, eul);
-        Matrix_vecscalmult(eul, eul, 180.f/PI);
-        Matrix_vecscalmult(estimatorData.b_hat, bias, 180.f/PI);
-        Matrix_vecscalmult(estimatorData.w, wRaw, 180.f/PI);
-        Matrix_vecscalmult(estimatorData.b_hat, bias, 180.f/3.14159f);
-        Matrix_colvecs2mat(mat,eul,bias,empty);
-        Matrix_printmat(mat);
+        LinAlg_vecscalmult(eul, eul, 180.f/PI);
+        LinAlg_vecscalmult(estimatorData.b_hat, bias, 180.f/PI);
+        LinAlg_vecscalmult(estimatorData.w, wRaw, 180.f/PI);
+        LinAlg_vecscalmult(estimatorData.b_hat, bias, 180.f/3.14159f);
+        LinAlg_colvecs2mat(mat,eul,bias,empty);
+        LinAlg_printmat(mat);
         
-        sleep_ms(10);
+        // sleep_ms(10);
         h = (time_us_64() - start)/1e6;
     }
 }

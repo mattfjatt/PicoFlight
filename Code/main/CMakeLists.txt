@@ -37,7 +37,9 @@ pico_sdk_init()
 
 add_executable(main main.c 
         src/MPU6050.c
-        src/Matrix.c
+        src/MMC5603.c
+        src/ICM42688P.c
+        src/LinAlg.c
         src/Estimator.c
         src/Receiver.c
         src/Servo.c

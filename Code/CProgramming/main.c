@@ -33,6 +33,7 @@ void matmatmatmul_NXN(int N, double A[N][N], double B[N][N], double C[N][N], dou
 void matmatsub(int N, int M, double A[N][M], double B[N][M], double C[N][M]); //Convert to mxn DONE
 void matmatadd(int N, int M, double A[N][M], double B[N][M], double C[N][M]);
 void vecvecadd(int N, double a[N], double b[N], double c[N]);
+void vecvecsub(int N, double a[N], double b[N], double c[N]);
 void init_matrices(int N, double A[N][N]); //Convert to mxn. IGNORE, this is just some shit
 void kill_column_below(int N, int diag_kk, double U[N][N], double L[N][N]);
 void set_3x3_mat(double a, double b, double c, 
@@ -48,7 +49,7 @@ void print_PLU_decomp(int N, double A[N][N], double P[N][N], double L[N][N], dou
 void solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
 void solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);
 void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N]);
-void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]);
+void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]); //This solver modifies b!!
 void matvecmul(int N, int M, double A[N][M], double x[M], double b[N]); //Convert to mxn DONE
 void zerovec(int N, double x[N]);
 void veccopy(int N, double a[N], double b[N]);
@@ -70,6 +71,8 @@ void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[pa
 void evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count]); //gradient g = J^T*r
 void set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count]); //Computes rough guess of the optimum solution
 void LM_solver();
+void get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]);
+void get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]);
 
 //Large variables for LM-solver
 #define SAMPLE_COUNT 1000
@@ -243,11 +246,11 @@ void LM_solver()
 {
     load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
     set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
-    printvec(PARAMETER_COUNT, theta);
     double lambda = 1E-4; //This worked in matlab
     double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];
     double JTJ_plus_lambda_eye[PARAMETER_COUNT][PARAMETER_COUNT];
-    int iterations = 0;
+    int iter = 0;
+    int max_iter = 1000;
 
     do{
         evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
@@ -255,7 +258,6 @@ void LM_solver()
         mat_transpose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
         evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
         matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);
-        //Now we need to create the matrix JTJ + lambda*I
         eye(PARAMETER_COUNT,lambdaEye);
         matscalmult(PARAMETER_COUNT,PARAMETER_COUNT,lambdaEye,lambda,lambdaEye);
         matmatadd(PARAMETER_COUNT,PARAMETER_COUNT,JTJ,lambdaEye,JTJ_plus_lambda_eye); //JT*J + lambda*I
@@ -263,12 +265,59 @@ void LM_solver()
         vecscalmult(PARAMETER_COUNT,gradient_vec,gradient_vec, -1.0);
         solve_linear_system_NXN_in_place(PARAMETER_COUNT,JTJ_plus_lambda_eye,d_theta,gradient_vec);
         vecvecadd(PARAMETER_COUNT,d_theta,theta,theta);
-        iterations++;
-    } while (vecnorm(PARAMETER_COUNT,d_theta) > 1E-6);
+        iter++;
+    } while (vecnorm(PARAMETER_COUNT,d_theta) > 1E-6 && iter < max_iter);
+    
+    if(iter == max_iter){
+        printf("Maximum allowed iterations of %d exceeded, some problem occured, probably bad initial estimate!\n", max_iter);
+    }else{
+        printf("Solution to the system at %d iterations with vecnorm(d_theta) = %.8f is T = \n", iter, vecnorm(PARAMETER_COUNT,d_theta));
+        printvec(PARAMETER_COUNT, theta);
+        double mag_correction_matrix[3][3];
+        double mag_correction_vector[3];
+        get_magnetometer_calib(theta, mag_correction_matrix, mag_correction_vector);
+        printf("Correction matrix = \n");
+        printmat(3,3,mag_correction_matrix);
+        printf("Correction vector = \n");
+        printvec(3,mag_correction_vector);
 
-    printf("Solution to the system at %d iterations with vecnorm(d_theta) = %.8f is T = \n", iterations, vecnorm(PARAMETER_COUNT,d_theta));
-    printvec(PARAMETER_COUNT, theta);
+        //Print some corrected mag samples
+        double m_corr[3];
+        for(int i = 0; i < SAMPLE_COUNT; i+=50){
+            get_corrected_mag_vector(mag_correction_matrix, mag_correction_vector, Samples[i], m_corr);
+            printf("m_corr of norm %f is \n", vecnorm(3, m_corr));
+            printvec(3,m_corr);
+        }
+    }
 }
+
+void get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3])
+{
+    int N = 3;
+    double m_raw[3];// = {si->x, si->y, si->z};
+    m_raw[0] = si.x;
+    m_raw[1] = si.y;
+    m_raw[2] = si.z;
+    vecvecsub(N,m_raw,correction_vector,m_corr); //m_corr = m_raw - correction_vector
+    matvecmul(N,N,correction_matrix, m_corr, m_corr); //m_corr <- A*m_corr
+}
+
+void get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3])
+{
+    //theta = [Ba = 1/a^2 Bb = 1/b^2 Bc = 1/c^2 px py pz S0 S1 S2]
+    //Cholesky decompose
+    double L[3][3]; 
+    L[0][0] = sqrt(theta[0]);
+    L[1][0] = theta[6]/L[0][0];
+    L[2][0] = theta[7]/L[0][0];
+    L[1][1] = sqrt(theta[1] - L[1][0]*L[1][0]);
+    L[2][1] = (theta[8] - L[1][0]*L[2][0])/L[1][1];
+    L[2][2] = sqrt(theta[2] - L[2][0]*L[2][0] - L[2][1]*L[2][1]);
+    mat_transpose(3,3,L,correction_matrix);
+    correction_vector[0] = theta[3];
+    correction_vector[1] = theta[4];
+    correction_vector[2] = theta[5];
+};
 
 void set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count])
 {
@@ -409,14 +458,12 @@ void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double
     //L*y = c solve for y, then solve for x
     int P[N];
     double y[N];
-    double c[N];
-    veccopy(N,b,c); //<-- Not very "in-place" of me tbh
     int rank = PLU_decomposition_NXN_in_place(N,P,A);
     if(rank < N){
         printf("System is rank-deficient!\n");
     }else{
-        permute_vector_with_P(N,P,c);
-        solve_lower_diagonal(N,A,y,c);
+        permute_vector_with_P(N,P,b);
+        solve_lower_diagonal(N,A,y,b);
         solve_upper_diagonal(N,A,x,y);
     }
 }
@@ -546,6 +593,12 @@ double vecnorm(int N, double x[N]){
 void vecvecadd(int N, double a[N], double b[N], double c[N]){
     for(int i = 0; i < N; i++){
         c[i] = a[i] + b[i];
+    }
+};
+
+void vecvecsub(int N, double a[N], double b[N], double c[N]){
+    for(int i = 0; i < N; i++){
+        c[i] = a[i] - b[i];
     }
 };
 

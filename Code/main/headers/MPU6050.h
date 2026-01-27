@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "hardware/i2c.h"
 #include "pico/binary_info.h"
-#include "headers/Matrix.h"
+#include "headers/LinAlg.h"
 
 //Registers
 #define MPU6050_I2C_ADDRESS 0x68

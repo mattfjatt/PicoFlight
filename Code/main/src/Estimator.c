@@ -3,7 +3,7 @@
 estStruct estimatorData;
 
 void Estimator_R_to_euler(float R[][3], float T[3]){
-    Matrix_zerovec(T);
+    LinAlg_zerovec(T);
     T[0] = -atan2(R[1][2],R[2][2]);
     T[1] =  asin(R[0][2]);
     T[2] = -atan2(R[0][1],R[0][0]);
@@ -13,21 +13,21 @@ void Estimator_euler_to_R(float T[3], float R[][3]){
     float Rx[3][3];
     float Ry[3][3];
     float Rz[3][3];
-    Matrix_rotX(T[0],Rx);
-    Matrix_rotY(T[1],Ry);
-    Matrix_rotZ(T[2],Rz);
-    Matrix_matmatmul(Rx,Ry,R);
-    Matrix_matmatmul(R,Rz,R);
+    LinAlg_rotX(T[0],Rx);
+    LinAlg_rotY(T[1],Ry);
+    LinAlg_rotZ(T[2],Rz);
+    LinAlg_matmatmul(Rx,Ry,R);
+    LinAlg_matmatmul(R,Rz,R);
 }
 
 void Estimator_R_next(float R[][3],float w[3],float h){
     float hwx[3][3];
     float dR[3][3];
-    Matrix_zeromat(dR);
-    Matrix_vec2skew(w,hwx);
-    Matrix_matscalmult(hwx,h,hwx);
-    Matrix_expm(hwx,dR,9);
-    Matrix_matmatmul(R,dR,R);
+    LinAlg_zeromat(dR);
+    LinAlg_vec2skew(w,hwx);
+    LinAlg_matscalmult(hwx,h,hwx);
+    LinAlg_expm(hwx,dR,9);
+    LinAlg_matmatmul(R,dR,R);
 }
 
 void Estimator_vecLP(float y[3], float x[3], float k){
@@ -41,43 +41,43 @@ void Estimator_scalLP(float* y, float* x, float k){
 }
 
 void Estimator_init(estStruct* estData){
-    Matrix_eye(estData->R_hat);
-    Matrix_eye(estData->R_hat_T);
-    Matrix_eye(estData->Kie);
-    Matrix_zeromat(estData->v1_x);
-    Matrix_zeromat(estData->v2_x);
-    Matrix_zeromat(estData->dR);
-    Matrix_zeromat(estData->Kpe);
-    Matrix_zeromat(estData->w_hat_X);
-    Matrix_zeromat(estData->Kpe_c_X);
-    Matrix_zerovec(estData->b_hat);
-    Matrix_zerovec(estData->w_hat);
-    Matrix_zerovec(estData->c);
-    Matrix_zerovec(estData->b_hat_dot);
-    Matrix_zerovec(estData->db_hat);
-    Matrix_zeromat(estData->S);
-    Matrix_zeromat(estData->Sh);
+    LinAlg_eye(estData->R_hat);
+    LinAlg_eye(estData->R_hat_T);
+    LinAlg_eye(estData->Kie);
+    LinAlg_zeromat(estData->v1_x);
+    LinAlg_zeromat(estData->v2_x);
+    LinAlg_zeromat(estData->dR);
+    LinAlg_zeromat(estData->Kpe);
+    LinAlg_zeromat(estData->w_hat_X);
+    LinAlg_zeromat(estData->Kpe_c_X);
+    LinAlg_zerovec(estData->b_hat);
+    LinAlg_zerovec(estData->w_hat);
+    LinAlg_zerovec(estData->c);
+    LinAlg_zerovec(estData->b_hat_dot);
+    LinAlg_zerovec(estData->db_hat);
+    LinAlg_zeromat(estData->S);
+    LinAlg_zeromat(estData->Sh);
     estData->k1 = 0.0;
     estData->k2 = 0.0;
-    Matrix_zerovec(estData->v1);
-    Matrix_zerovec(estData->v2);
-    Matrix_zerovec(estData->v1_hat);
-    Matrix_zerovec(estData->v2_hat);
-    Matrix_zerovec(estData->Kpe_c);
-    Matrix_zerovec(estData->B);
-    Matrix_zeromat(estData->M);
-    Matrix_zerovec(estData->w);
-    Matrix_zerovec(estData->a);
-    Matrix_zerovec(estData->m);
-    Matrix_zerovec(estData->m_corr);
-    Matrix_zerovec(estData->w_hat_f);
+    LinAlg_zerovec(estData->v1);
+    LinAlg_zerovec(estData->v2);
+    LinAlg_zerovec(estData->v1_hat);
+    LinAlg_zerovec(estData->v2_hat);
+    LinAlg_zerovec(estData->Kpe_c);
+    LinAlg_zerovec(estData->B);
+    LinAlg_zeromat(estData->M);
+    LinAlg_zerovec(estData->w);
+    LinAlg_zerovec(estData->a);
+    LinAlg_zerovec(estData->m);
+    LinAlg_zerovec(estData->m_corr);
+    LinAlg_zerovec(estData->w_hat_f);
 
     float ident[3][3];
-    Matrix_eye(ident);
-    Matrix_mat2colvecs(ident, estData->i1, estData->i2, estData->i3);
-    Matrix_matscalmult(ident, -1.0, ident);
-    Matrix_mat2colvecs(ident, estData->ni1, estData->ni2, estData->ni3);
-    Matrix_zerovec(estData->u1);
+    LinAlg_eye(ident);
+    LinAlg_mat2colvecs(ident, estData->i1, estData->i2, estData->i3);
+    LinAlg_matscalmult(ident, -1.0, ident);
+    LinAlg_mat2colvecs(ident, estData->ni1, estData->ni2, estData->ni3);
+    LinAlg_zerovec(estData->u1);
     //Can warm-start the b_hat vector here, but the numbers should be checked regularly and updated if needed
     estData->b_hat[2] = 0.25f*3.14159f/180.f;
 
@@ -90,15 +90,15 @@ void Estimator_estimate_R(estStruct* estData,float h){
     //mag_correction(estData); //Correct the magnetic reading
 
     //Define the reference vectors:
-    Matrix_normalize(estData->a,estData->v1);
+    LinAlg_normalize(estData->a,estData->v1);
     //Quite a large error on the y-axis of the accel, doing a quick and dirty subtraction:
     estData->v1[0] = estData->v1[0] + 0.01115f;
     estData->v1[1] = estData->v1[1] - 0.06315f;
     //normalize(estData->m_corr,estData->v2); //This gives NaN if norm(m_corr) = 0;
-    Matrix_transpose(estData->R_hat, estData->R_hat_T);
-    Matrix_matvecmul(estData->R_hat_T, estData->ni3, estData->v1_hat);
+    LinAlg_transpose(estData->R_hat, estData->R_hat_T);
+    LinAlg_matvecmul(estData->R_hat_T, estData->ni3, estData->v1_hat);
     //matvecmul(estData->R_hat_T, estData->u1, estData->v2_hat);
-    Matrix_vec2skew(estData->v1, estData->v1_x);
+    LinAlg_vec2skew(estData->v1, estData->v1_x);
     //vec2skew(estData->v2, estData->v2_x);
 
     //float err[3];
@@ -108,11 +108,11 @@ void Estimator_estimate_R(estStruct* estData,float h){
     //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
     estData->k1 = 1.0000;
     estData->k2 = 0.0000; //Don't use if magnetic correction parameters are outdated
-    Matrix_matscalmult(estData->v1_x, estData->k1, estData->v1_x);
+    LinAlg_matscalmult(estData->v1_x, estData->k1, estData->v1_x);
     //matscalmult(estData->v2_x, estData->k2, estData->v2_x);
-    Matrix_matvecmul(estData->v1_x, estData->v1_hat, estData->v1_hat);
+    LinAlg_matvecmul(estData->v1_x, estData->v1_hat, estData->v1_hat);
     //matvecmul(estData->v2_x, estData->v2_hat, estData->v2_hat);
-    Matrix_vecvecadd(estData->v1_hat, estData->v2_hat, estData->c);
+    LinAlg_vecvecadd(estData->v1_hat, estData->v2_hat, estData->c);
     
 
     //Correction term for bias estimation/integral term(they are supposed to be negative, check the paper):
@@ -124,21 +124,21 @@ void Estimator_estimate_R(estStruct* estData,float h){
     estData->Kpe[1][1] = KpYe;
     estData->Kpe[2][2] = KpZe;
 
-    Matrix_matvecmul(estData->Kie, estData->c, estData->b_hat_dot); //b_hat_dot = Kie*c
-    Matrix_vecscalmult(estData->b_hat_dot, estData->db_hat, h); //db_hat <- b_hat_dot*h
-    Matrix_vecvecadd(estData->b_hat, estData->db_hat, estData->b_hat);
+    LinAlg_matvecmul(estData->Kie, estData->c, estData->b_hat_dot); //b_hat_dot = Kie*c
+    LinAlg_vecscalmult(estData->b_hat_dot, estData->db_hat, h); //db_hat <- b_hat_dot*h
+    LinAlg_vecvecadd(estData->b_hat, estData->db_hat, estData->b_hat);
     //printvec(estData->w_hat);
 
     //Correction term in R_hat_dot:
-    Matrix_matvecmul(estData->Kpe, estData->c, estData->Kpe_c);
-    Matrix_vec2skew(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
-    Matrix_vecvecsub(estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
-    Matrix_vec2skew(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
-    Matrix_matmatadd(estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
-    Matrix_matscalmult(estData->S,h,estData->Sh); // Sh = S*h
-    Matrix_expm(estData->Sh, estData->dR,9); //expm(Sh) = dR
-    Matrix_matmatmul(estData->R_hat, estData->dR, estData->R_hat); //R_hat <- R_hat*dR
-    Matrix_matnormalize(estData->R_hat); //Ensure R_hat remains in SO(3)
+    LinAlg_matvecmul(estData->Kpe, estData->c, estData->Kpe_c);
+    LinAlg_vec2skew(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
+    LinAlg_vecvecsub(estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
+    LinAlg_vec2skew(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
+    LinAlg_matmatadd(estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
+    LinAlg_matscalmult(estData->S,h,estData->Sh); // Sh = S*h
+    LinAlg_expm(estData->Sh, estData->dR,9); //expm(Sh) = dR
+    LinAlg_matmatmul(estData->R_hat, estData->dR, estData->R_hat); //R_hat <- R_hat*dR
+    LinAlg_matnormalize(estData->R_hat); //Ensure R_hat remains in SO(3)
 
     //Also do a a lowpass of w_hat
     Estimator_vecLP(estData->w_hat_f, estData->w_hat, h / estData->Lambda);

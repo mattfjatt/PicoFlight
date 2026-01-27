@@ -1,7 +1,7 @@
 #ifndef ESTIMATOR_H
 #define ESTIMATOR_H
 
-#include "headers/Matrix.h"
+#include "headers/LinAlg.h"
 #include "headers/MPU6050.h"
 #include "headers/Config.h"
 #include "pico/stdlib.h"
