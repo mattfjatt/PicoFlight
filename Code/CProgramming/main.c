@@ -11,7 +11,6 @@ typedef struct{
 
 void switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);
 void update_global_permutation_vector(int N, const int P_update[N], int P[N]);
-void multiply_row(double A[][3], int r, double k);
 void add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k);
 void permute_vector_with_P(int N, int P[N], double b[N]);
 void printmat(int N, int M, const double A[N][M]);
@@ -36,14 +35,6 @@ void vecvecadd(int N, double a[N], double b[N], double c[N]);
 void vecvecsub(int N, double a[N], double b[N], double c[N]);
 void init_matrices(int N, double A[N][N]); //Convert to mxn. IGNORE, this is just some shit
 void kill_column_below(int N, int diag_kk, double U[N][N], double L[N][N]);
-void set_3x3_mat(double a, double b, double c, 
-                 double d, double e, double f,
-                 double g, double h, double i, double A[3][3]);
-
-void set_4x4_mat(double a, double b, double c, double d, 
-                 double e, double f, double g, double h,
-                 double i, double j, double k, double l,
-                 double m, double n, double o, double p, double A[4][4]);
 
 void print_PLU_decomp(int N, double A[N][N], double P[N][N], double L[N][N], double U[N][N], int rank);
 void solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
@@ -56,7 +47,6 @@ void veccopy(int N, double a[N], double b[N]);
 void mat_transpose(int N, int M, double A[N][M], double AT[M][N]); //Convert to mxn DONE
 void matscalmult(int N, int M, double A[N][M], double k, double C[N][M]);
 void vecscalmult(int N, double x[N], double y[N], double k);
-void test_updated_functions();
 
 
 //Takes in 
@@ -91,24 +81,7 @@ int load_samples_from_file(const char* filepath, Sample* samples, int sample_cou
 
 int main()
 {
-    // double A[3][3];
-    // set_3x3_mat(1.0, 2.0, 3.0, 
-    //             4.0, 6.0, 1.0,
-    //             5.0, 10.0,3.0, A);
-    // double b[3]; b[0] = 1.0; b[1] = 2.0; b[2] = 3.0;
-    // double x[3];
-    // solve_linear_system_NXN(3,A,x,b);
-    // printvec(3,x);
-    // test_updated_functions();
-    // int N = 4;
-    // int P0[4] = {1,0,2,3};
-    // int P_global[4] = {0,1,2,3};
-    // update_global_permutation_vector(N,P0,P_global);
-    // printvec_int(N,P_global);
-    // update_global_permutation_vector(N,P0,P_global);
-    // printvec_int(N,P_global);
     LM_solver();
-    // printf("size = %d\n", sizeof(Samples));
     printf("END OF PROGRAM\n");
     return 0;
 }
@@ -130,37 +103,6 @@ int load_samples_from_file(const char* filepath, Sample* samples, int sample_cou
         }
     }
     fclose(fptr);
-}
-
-void test_updated_functions()
-{
-    int N = 4;
-
-    //Testing in-place PLU
-    double A[N][N];
-    double P[N];
-    set_4x4_mat(1, 2, 3, 6,
-                6, 5, 3, 1,
-                9, 5, 7, 6,
-                2, 9, 5, 6,A);
-    double b[4] = {1,2,3,4};
-    //double b[4] = {3,4,2,1};
-    double ans[4];
-    //PLU_decomposition_NXN_in_place(N,P,A);
-    //solve_linear_system_NXN_in_place(N,A,ans,b);
-    //printvec(N,ans);
-
-    // solve_lower_diagonal(N,A,ans,b);
-    // printf("Lower system solution = \n");
-    // printvec(N,ans);
-
-    // solve_upper_diagonal(N,A,ans,b);
-    // printf("Upper system solution = \n");
-    // printvec(N,ans);
-
-
-    
-
 }
 
 int PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])
@@ -273,21 +215,21 @@ void LM_solver()
     }else{
         printf("Solution to the system at %d iterations with vecnorm(d_theta) = %.8f is T = \n", iter, vecnorm(PARAMETER_COUNT,d_theta));
         printvec(PARAMETER_COUNT, theta);
-        double mag_correction_matrix[3][3];
-        double mag_correction_vector[3];
-        get_magnetometer_calib(theta, mag_correction_matrix, mag_correction_vector);
-        printf("Correction matrix = \n");
-        printmat(3,3,mag_correction_matrix);
-        printf("Correction vector = \n");
-        printvec(3,mag_correction_vector);
+        // double mag_correction_matrix[3][3];
+        // double mag_correction_vector[3];
+        // get_magnetometer_calib(theta, mag_correction_matrix, mag_correction_vector);
+        // printf("Correction matrix = \n");
+        // printmat(3,3,mag_correction_matrix);
+        // printf("Correction vector = \n");
+        // printvec(3,mag_correction_vector);
 
-        //Print some corrected mag samples
-        double m_corr[3];
-        for(int i = 0; i < SAMPLE_COUNT; i+=50){
-            get_corrected_mag_vector(mag_correction_matrix, mag_correction_vector, Samples[i], m_corr);
-            printf("m_corr of norm %f is \n", vecnorm(3, m_corr));
-            printvec(3,m_corr);
-        }
+        // //Print some corrected mag samples
+        // double m_corr[3];
+        // for(int i = 0; i < SAMPLE_COUNT; i+=50){
+        //     get_corrected_mag_vector(mag_correction_matrix, mag_correction_vector, Samples[i], m_corr);
+        //     printf("m_corr of norm %f is \n", vecnorm(3, m_corr));
+        //     printvec(3,m_corr);
+        // }
     }
 }
 
@@ -662,27 +604,6 @@ void print_PLU_decomp(int N, double A[N][N], double P[N][N], double L[N][N], dou
     printf("rank(A) = rank(U) = %d\n", rank);
 }
 
-void set_3x3_mat(double a, double b, double c, 
-                 double d, double e, double f,
-                 double g, double h, double i, double A[3][3])
-{
-    A[0][0] = a; A[0][1] = b; A[0][2] = c;
-    A[1][0] = d; A[1][1] = e; A[1][2] = f;
-    A[2][0] = g; A[2][1] = h; A[2][2] = i;
-}
-
-
-void set_4x4_mat(double a, double b, double c, double d, 
-                 double e, double f, double g, double h,
-                 double i, double j, double k, double l,
-                 double m, double n, double o, double p, double A[4][4])
-{
-    A[0][0] = a; A[0][1] = b; A[0][2] = c; A[0][3] = d;
-    A[1][0] = e; A[1][1] = f; A[1][2] = g; A[1][3] = h;
-    A[2][0] = i; A[2][1] = j; A[2][2] = k; A[2][3] = l;
-    A[3][0] = m; A[3][1] = n; A[3][2] = o; A[3][3] = p;
-}
-
 void init_matrices(int N, double A[N][N])
 {
 
@@ -926,13 +847,6 @@ void eye(int N,double A[N][N])
     zeromat(N, N, A);
     for(int i = 0; i < N; i++){
         A[i][i]= 1;
-    }
-}
-
-void multiply_row(double A[][3], int r, double k)
-{
-    for(int i = 0; i < 3; i++){
-        A[r][i] = A[r][i]*k;
     }
 }
 

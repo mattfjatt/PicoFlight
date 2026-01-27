@@ -117,7 +117,7 @@ void LinAlg_colvecs2mat(float R[][3], float r1[3], float r2[3], float r3[3]){
     }
 }
 
-void LinAlg_matnormalize(float R[][3]){
+void LinAlg_matnormalizerotation(float R[][3]){
     //Crude method of ensuring R remains in SO(3)
     float r1[3], r2[3], r3[3];
     float u1[3], u2[3], u3[3];

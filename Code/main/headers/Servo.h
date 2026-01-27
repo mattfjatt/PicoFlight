@@ -12,7 +12,9 @@ typedef enum {
 } ServoPin_t;
 
 void Servo_setup_pwm_pins();
+
 void Servo_init();
+
 void Servo_set_us(ServoPin_t pin, uint16_t period_us);
 
 #endif

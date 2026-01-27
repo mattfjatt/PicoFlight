@@ -13,9 +13,13 @@ typedef struct{
 extern recStruct receiverData;
 
 void Receiver_gpio_callback(uint gpio, uint32_t events);
+
 void Receiver_setup_gpio_interrupts_pins();
+
 void Receiver_init_struct(recStruct* recData);
+
 void Receiver_print_data();
+
 void Receiver_init(recStruct* recData);
 
 

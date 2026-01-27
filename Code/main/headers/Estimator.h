@@ -63,11 +63,17 @@ typedef struct{
 extern estStruct estimatorData;
 
 void Estimator_R_to_euler(float R[][3], float T[3]); //R: input matrix, T: vector of euler angles: T =[phi, theta, psi]
+
 void Estimator_euler_to_R(float T[3], float R[][3]); //T input euler angles, R: Output matrix
+
 void Estimator_R_next(float R[][3],float w[3], float h); //Update R
+
 void Estimator_vecLP(float y[3], float x[3], float k); //AR1-low pass filter for a 3x1 vector
+
 void Estimator_scalLP(float* y, float* x, float k); //Low pass filter for a scalar
+
 void Estimator_init(estStruct* estData);
+
 void Estimator_estimate_R(estStruct* estData, float h);
 // void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
 // void Estimator_mag_correction(estStruct* estData);

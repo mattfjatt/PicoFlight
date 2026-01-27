@@ -138,7 +138,7 @@ void Estimator_estimate_R(estStruct* estData,float h){
     LinAlg_matscalmult(estData->S,h,estData->Sh); // Sh = S*h
     LinAlg_expm(estData->Sh, estData->dR,9); //expm(Sh) = dR
     LinAlg_matmatmul(estData->R_hat, estData->dR, estData->R_hat); //R_hat <- R_hat*dR
-    LinAlg_matnormalize(estData->R_hat); //Ensure R_hat remains in SO(3)
+    LinAlg_matnormalizerotation(estData->R_hat); //Ensure R_hat remains in SO(3)
 
     //Also do a a lowpass of w_hat
     Estimator_vecLP(estData->w_hat_f, estData->w_hat, h / estData->Lambda);
