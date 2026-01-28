@@ -10,23 +10,23 @@ typedef struct{
 }Sample;
 
 //------Old functions that are updated and belong in LinAlg------
-void LinAlg_printmat(int N, int M, const double A[N][M]);
-void LinAlg_printvec(int N, double v[N]);
-void LinAlg_eye(int N,double A[N][N]);
-double LinAlg_vecnorm(int N, double x[N]);
-void LinAlg_zeromat(int N, int M,double A[N][M]);
-void LinAlg_matcopy(int N, int M, const double A[N][M], double B[N][M]);
-void LinAlg_matmatmul_small(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Replaces matmatmul
-void LinAlg_matmatsub(int N, int M, double A[N][M], double B[N][M], double C[N][M]); //Convert to mxn DONE
-void LinAlg_matmatadd(int N, int M, double A[N][M], double B[N][M], double C[N][M]);
-void LinAlg_vecvecadd(int N, double a[N], double b[N], double c[N]);
-void LinAlg_vecvecsub(int N, double a[N], double b[N], double c[N]);
-void LinAlg_matvecmul(int N, int M, double A[N][M], double x[M], double b[N]); //Convert to mxn DONE
-void LinAlg_zerovec(int N, double x[N]);
-void LinAlg_veccopy(int N, double a[N], double b[N]);
-void LinAlg_mattranspose(int N, int M, double A[N][M], double AT[M][N]); //Convert to mxn DONE
-void LinAlg_matscalmult(int N, int M, double A[N][M], double k, double C[N][M]);
-void LinAlg_vecscalmult(int N, double x[N], double y[N], double k);
+void LinAlg_printmat(int N, int M, const double A[N][M]);                                   //Done
+void LinAlg_printvec(int N, double v[N]);                                                   //Done
+void LinAlg_eye(int N,double A[N][N]);                                                      //Done
+double LinAlg_vecnorm(int N, double x[N]);                                                  //Done
+void LinAlg_zeromat(int N, int M,double A[N][M]);                                           //Done
+void LinAlg_matcopy(int N, int M, const double A[N][M], double B[N][M]);                    //Done
+void LinAlg_matmatmul_small(int N, int M, double A[N][M], double B[M][N], double C[N][N]);  //Done, replaces matmatmul
+void LinAlg_matmatsub(int N, int M, double A[N][M], double B[N][M], double C[N][M]);        //Done
+void LinAlg_matmatadd(int N, int M, double A[N][M], double B[N][M], double C[N][M]);        //Done
+void LinAlg_vecvecadd(int N, double a[N], double b[N], double c[N]);                        //Done
+void LinAlg_vecvecsub(int N, double a[N], double b[N], double c[N]);                        //Done
+void LinAlg_matvecmul(int N, int M, double A[N][M], double x[M], double b[N]);              //Done
+void LinAlg_zerovec(int N, double x[N]);                                                    //Done
+void LinAlg_veccopy(int N, double a[N], double b[N]);                                       //Done
+void LinAlg_mattranspose(int N, int M, double A[N][M], double AT[M][N]);                    //Done, replaces LinAlg_transpose
+void LinAlg_matscalmult(int N, int M, double A[N][M], double k, double C[N][M]);            //Done
+void LinAlg_vecscalmult(int N, double x[N], double y[N], double k);                         //Done
 //-----------------------------End-------------------------------
 
 //--------------New functions that belong in LinAlg--------------
@@ -38,7 +38,7 @@ void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_sta
 void LinAlg_permute_vector_with_P(int N, int P[N], double b[N]);
 void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);
 void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);
-void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]);
+void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Used for larger matrices most likely defined globally
 void LinAlg_solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
 void LinAlg_solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);
 void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]); //This solver modifies b!!
@@ -48,8 +48,12 @@ void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N],
 
 //--------Make a new source file for the optimizer?--------------
 double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3]);
-void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count]);
 void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);
+//According to my current unerstanding of my own implementation, the two functions above are the only functions strictly specific to the magnetometer cost function
+//To generalize, they could be passed as function pointers to the optimizer below, this means ri and gradient_ri can be defined and declared in the sensor-specific file,
+//while the rest of the optimizer can be in its own optimizer namespace.
+
+void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count]);
 void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count]);
 void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count]); //gradient g = J^T*r
 void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count]); //Computes rough guess of the optimum solution
@@ -73,7 +77,6 @@ Sample Samples[SAMPLE_COUNT];//24kB
 
 
 int load_samples_from_file(const char* filepath, Sample* samples, int sample_count);
-
 int main()
 {
     Namespace_LM_solver();

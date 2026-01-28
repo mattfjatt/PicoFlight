@@ -30,7 +30,7 @@ void MPU6050_reset();
 
 void MPU6050_setup();
 
-void MPU6050_get_imu_data(float acc[3], float gyr[3]);
+void MPU6050_get_imu_data(double acc[3], double gyr[3]);
 
 void MPU6050_i2c_setup();
 

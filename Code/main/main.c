@@ -12,7 +12,7 @@
 
 void Main_init(contStruct* contData, recStruct* recData, estStruct* estData);
 
-void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, float h);
+void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h);
 
 
 int main()
@@ -20,13 +20,14 @@ int main()
     stdio_init_all();
     Main_init(&controllerData, &receiverData, &estimatorData);
     
-    float eul[3];
-    float bias[3];
-    float wRaw[3];
-    float empty[3];
-    LinAlg_zerovec(empty);
-    float h = 0.0005f;
-    float mat[3][3];
+    int N = 3;
+    double eul[3];
+    double bias[3];
+    double wRaw[3];
+    double empty[3];
+    LinAlg_zerovec(N,empty);
+    double h = 0.0005;
+    double mat[3][3];
     sleep_ms(1000);
     
     while (true)
@@ -34,13 +35,13 @@ int main()
         uint64_t start = time_us_64();
         Main_run(&controllerData, &receiverData, &estimatorData, h);
         
-        Estimator_R_to_euler(estimatorData.R_hat, eul);
-        LinAlg_vecscalmult(eul, eul, 180.f/PI);
-        LinAlg_vecscalmult(estimatorData.b_hat, bias, 180.f/PI);
-        LinAlg_vecscalmult(estimatorData.w, wRaw, 180.f/PI);
-        LinAlg_vecscalmult(estimatorData.b_hat, bias, 180.f/3.14159f);
-        LinAlg_colvecs2mat(mat,eul,bias,empty);
-        LinAlg_printmat(mat);
+        // Estimator_R_to_euler(estimatorData.R_hat, eul);
+        // LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
+        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
+        // LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
+        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
+        // LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
+        // LinAlg_printmat(N,N,mat);
         
         // sleep_ms(10);
         h = (time_us_64() - start)/1e6;
@@ -56,7 +57,7 @@ void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
     Servo_init();
 }
 
-void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, float h)
+void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h)
 {
     Estimator_estimate_R(estData, h);
     Controller_run_quadcopter(contData, recData, estData, h);

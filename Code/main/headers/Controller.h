@@ -11,55 +11,56 @@
 #define PI 3.14159265F
 
 typedef struct{
+    int N;
     //Matrices:
-    float Rd[3][3]; //Desired matrix
-    float Rd_T[3][3]; //Desired matrix transposed
-    float E_hat[3][3]; //Estimate of error matrix
-    float I_hat[3][3]; //Estimate of inertia matrix
-    float Kp[3][3]; //P-gain
-    float Kd[3][3]; //D-gain
-    float Ki[3][3]; //I-gain
+    double Rd[3][3]; //Desired matrix
+    double Rd_T[3][3]; //Desired matrix transposed
+    double E_hat[3][3]; //Estimate of error matrix
+    double I_hat[3][3]; //Estimate of inertia matrix
+    double Kp[3][3]; //P-gain
+    double Kd[3][3]; //D-gain
+    double Ki[3][3]; //I-gain
 
     //Vectors:
-    float e_hat[3]; //Estimate of error
-    float e_w_hat[3]; //Estimate of rate error. Yaw will be rate controlled
-    float e_i_hat[3]; //Integral of e_hat
-    float e_i_wind_up[3]; //Anti wind-up limits
-    float tau[3]; //Control input
-    float Kp_e_hat[3];  //Kp*e_hat
-    float Kd_w_hat[3];  //Kd*w_hat
-    float euler[3];
+    double e_hat[3]; //Estimate of error
+    double e_w_hat[3]; //Estimate of rate error. Yaw will be rate controlled
+    double e_i_hat[3]; //Integral of e_hat
+    double e_i_wind_up[3]; //Anti wind-up limits
+    double tau[3]; //Control input
+    double Kp_e_hat[3];  //Kp*e_hat
+    double Kd_w_hat[3];  //Kd*w_hat
+    double euler[3];
 
     //Scalars:
-    float T;  //Throttle
-    float ArmTimer; //Counting how long receiver inputs have been in startup position
-    float ArmThreshold;//When this is reached, arm the controller
+    double T;  //Throttle
+    double ArmTimer; //Counting how long receiver inputs have been in startup position
+    double ArmThreshold;//When this is reached, arm the controller
 
     //Motor forces tricopter:
-    float FL; //Force left
-    float FR; //Force right
-    float FB; //Force back
-    float FT; //Force "turn"
-    float FA; //MAgnitude of FB and FT
+    double FL; //Force left
+    double FR; //Force right
+    double FB; //Force back
+    double FT; //Force "turn"
+    double FA; //MAgnitude of FB and FT
 
     //Controller inputs for tricopter:
-    float dFL; //Delta force left
-    float dFR; //Delta force right
-    float dFB; //Delta force back
-    float dFT; //Delta force "turn", is equal to FT
-    float a;  //Angle alpha
+    double dFL; //Delta force left
+    double dFR; //Delta force right
+    double dFB; //Delta force back
+    double dFT; //Delta force "turn", is equal to FT
+    double a;  //Angle alpha
 
     //Motor forces quadcopter:
-    float F0; //Front right
-    float F1; //Front left
-    float F2; //Back left
-    float F3; //Back right
+    double F0; //Front right
+    double F1; //Front left
+    double F2; //Back left
+    double F3; //Back right
 
     //Controller inputs for quadcopter:
-    float dF0; //Delta front right
-    float dF1; //Delta front left
-    float dF2; //Delta back left
-    float dF3; //Delta back right
+    double dF0; //Delta front right
+    double dF1; //Delta front left
+    double dF2; //Delta back left
+    double dF3; //Delta back right
 
     //Flags & arming
     bool RunIntegrators;
@@ -68,14 +69,14 @@ typedef struct{
     uint32_t LedBuiltin;
 
     //Throttle thresholds used for truncating duty cycle and safe power off when throttle at lowest position
-    float TMax;
-    float TMin;
-    float TCutoff;
+    double TMax;
+    double TMin;
+    double TCutoff;
 
     //Controller behavior
-    float RollRate;
-    float PitchRate;
-    float YawRate;
+    double RollRate;
+    double PitchRate;
+    double YawRate;
 }contStruct;
 
 extern contStruct controllerData;
@@ -86,7 +87,7 @@ void Controller_init(contStruct* contData);
 
 void Controller_get_e_hat(contStruct* contData, estStruct* estData);
 
-void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, float h);
+void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, double h);
 
 void Controller_get_tau(contStruct* contData, estStruct* estData);
 
@@ -96,13 +97,13 @@ void Controller_control_alloc_quadcopter(contStruct* contData);
 
 void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruct* estData);
 
-void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStruct* estData, float h);
+void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStruct* estData, double h);
 
-void Controller_check_for_arming(contStruct* contData, recStruct* recData, float h);
+void Controller_check_for_arming(contStruct* contData, recStruct* recData, double h);
 
-float Controller_force_to_duty(float F); //Converts force to PWM value
+double Controller_force_to_duty(double F); //Converts force to PWM value
 
-float Controller_angle_deg_to_duty(float a); //Converts angle to PWM value
+double Controller_angle_deg_to_duty(double a); //Converts angle to PWM value
 
 void Controller_print_forces_PWM_tricopter(const contStruct* contData, const char* type);
 

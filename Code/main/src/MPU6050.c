@@ -72,7 +72,7 @@ void MPU6050_init()
 
 
 
-void MPU6050_get_imu_data(float acc[3], float gyr[3]){
+void MPU6050_get_imu_data(double acc[3], double gyr[3]){
     int err;
 	uint8_t buff[14]; //14 bytes in total
 	buff[0] = MPU6050_ACCEL_START;
@@ -100,7 +100,7 @@ void MPU6050_get_imu_data(float acc[3], float gyr[3]){
     //ACCEL_FS_SEL = 0b00010000,  +-8g: 1/4096
     //ACCEL_FS_SEL = 0b00001000,  +-4g: 1/8192
     //ACCEL_FS_SEL = 0b00000000,  +-2g: 1/16384
-    float scaling_factor_acc = 1/8192.0f;
+    double scaling_factor_acc = 1/8192.0;
     //Default MPU6050 coordinate frame...
     // acc[0] = ACC_x*scaling_factor_acc;
     // acc[1] = ACC_y*scaling_factor_acc;
@@ -136,8 +136,8 @@ void MPU6050_get_imu_data(float acc[3], float gyr[3]){
     //GYRO_FS_SEL = 0b00010000, 1000 dps: 1/32.8
     //GYRO_FS_SEL = 0b00001000, 500  dps: 1/65.5
     //GYRO_FS_SEL = 0b00000000, 250  dps: 1/131
-    float scaling_factor_gyr = 1/65.5;
-    float d2r = 3.14159265/180;
+    double scaling_factor_gyr = 1/65.5;
+    double d2r = 3.14159265/180;
     //This register mapping to x,y,z is the default coordinate frame on the MPU6050...
     // gyr[0] = ARS_x*scaling_factor_gyr*d2r; //Gyro x
     // gyr[1] = ARS_y*scaling_factor_gyr*d2r; //Gyro y

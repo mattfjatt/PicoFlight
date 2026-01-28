@@ -1,26 +1,27 @@
 #include "headers/Controller.h"
 
 contStruct controllerData;
-float root3 = 1.732050f;
+double root3 = 1.732050f;
 uint16_t ServoArray[4] = {SERVO_0, SERVO_1, SERVO_2, SERVO_3};
 
 
 void Controller_init(contStruct* contData){
-    LinAlg_eye(contData->Rd);
-    LinAlg_eye(contData->Rd_T);
-    LinAlg_eye(contData->I_hat);
-    LinAlg_zeromat(contData->E_hat);
-    LinAlg_zeromat(contData->Kp);
-    LinAlg_zeromat(contData->Kd);
-    LinAlg_zeromat(contData->Ki);
+    contData->N = 3;
+    LinAlg_eye(contData->N,contData->Rd);
+    LinAlg_eye(contData->N,contData->Rd_T);
+    LinAlg_eye(contData->N,contData->I_hat);
+    LinAlg_zeromat(contData->N,contData->N,contData->E_hat);
+    LinAlg_zeromat(contData->N,contData->N,contData->Kp);
+    LinAlg_zeromat(contData->N,contData->N,contData->Kd);
+    LinAlg_zeromat(contData->N,contData->N,contData->Ki);
 
-    LinAlg_zerovec(contData->e_hat);
-    LinAlg_zerovec(contData->tau);
-    LinAlg_zerovec(contData->Kp_e_hat);
-    LinAlg_zerovec(contData->Kd_w_hat);
-    LinAlg_zerovec(contData->e_w_hat);
-    LinAlg_zerovec(contData->euler);
-    LinAlg_zerovec(contData->e_i_hat);
+    LinAlg_zerovec(contData->N,contData->e_hat);
+    LinAlg_zerovec(contData->N,contData->tau);
+    LinAlg_zerovec(contData->N,contData->Kp_e_hat);
+    LinAlg_zerovec(contData->N,contData->Kd_w_hat);
+    LinAlg_zerovec(contData->N,contData->e_w_hat);
+    LinAlg_zerovec(contData->N,contData->euler);
+    LinAlg_zerovec(contData->N,contData->e_i_hat);
 
     //Set gains:
     contData->Kp[0][0] = - KpX;
@@ -44,8 +45,8 @@ void Controller_init(contStruct* contData){
     contData->RunIntegrators = false; //Integrators not allowed to run immediately
     contData->ArmController = false; //Controller starts as disarmed
 
-    contData->ArmTimer = 0.f;
-    contData->ArmThreshold = 2.f; //Seconds
+    contData->ArmTimer = 0.0;
+    contData->ArmThreshold = 2.0; //Seconds
     contData->ArmLimits[0] = ArmCh0;
     contData->ArmLimits[1] = ArmCh1;
     contData->ArmLimits[2] = ArmCh2;
@@ -74,24 +75,24 @@ void Controller_init(contStruct* contData){
 }
 
 void Controller_get_e_hat(contStruct* contData, estStruct* estData){
-    LinAlg_transpose(contData->Rd, contData->Rd_T);
-    LinAlg_matmatmul(contData->Rd_T, estData->R_hat, contData->E_hat);
+    LinAlg_mattranspose(contData->N,contData->N,contData->Rd, contData->Rd_T);
+    LinAlg_matmatmul_small(contData->N,contData->N,contData->Rd_T, estData->R_hat, contData->E_hat);
     //Extract the error vector e_hat from E_hat:
     contData->e_hat[0] = 0.5*(contData->E_hat[2][1] - contData->E_hat[1][2]);
     contData->e_hat[1] = 0.5*(contData->E_hat[0][2] - contData->E_hat[2][0]);
     contData->e_hat[2] = 0.5*(contData->E_hat[1][0] - contData->E_hat[0][1]);
 }
 
-void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, float h)
+void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, double h)
 {
     if(!contData->RunIntegrators){
         return;
     }
     //e_i_hat = e_i_hat + h*Ki*e_hat
-    float temp[3];
-    LinAlg_matvecmul(contData->Ki, contData->e_hat, temp); //temp = Ki*e_hat
-    LinAlg_vecscalmult(temp, temp, h); //temp = h*Ki*e_hat
-    LinAlg_vecvecadd(contData->e_i_hat, temp, contData->e_i_hat); //e_i_hat = e_i_hat + temp 
+    double temp[3];
+    LinAlg_matvecmul(contData->N,contData->N,contData->Ki, contData->e_hat, temp); //temp = Ki*e_hat
+    LinAlg_vecscalmult(contData->N,temp, temp, h); //temp = h*Ki*e_hat
+    LinAlg_vecvecadd(contData->N,contData->e_i_hat, temp, contData->e_i_hat); //e_i_hat = e_i_hat + temp 
 
     //anti wind-up
     for(int i = 0; i < 3; i++){
@@ -105,13 +106,13 @@ void Controller_get_e_hat_integral(contStruct* contData, estStruct* estData, flo
 
 void Controller_get_tau(contStruct* contData, estStruct* estData){
     //tau = I_hat*(- Kp*e_hat - Kd*w_hat - Ki*e_i_hat) + S(I_hat*w_hat)*w_hat <- ignoring the skew part:)
-    float temp[3];
+    double temp[3];
     Controller_get_e_hat(contData, estData);
-    LinAlg_matvecmul(contData->Kp, contData->e_hat, contData->Kp_e_hat);
-    LinAlg_matvecmul(contData->Kd, estData->w_hat_f, contData->Kd_w_hat); //Using the filtered w_hat for the derivative part
-    LinAlg_vecvecadd(contData->Kp_e_hat, contData->Kd_w_hat, temp);
-    LinAlg_vecvecadd(contData->e_i_hat, temp, contData->tau); //Ki is already multiplied elsewhere
-    LinAlg_matvecmul(contData->I_hat, contData->tau, contData->tau);
+    LinAlg_matvecmul(contData->N,contData->N,contData->Kp, contData->e_hat, contData->Kp_e_hat);
+    LinAlg_matvecmul(contData->N,contData->N,contData->Kd, estData->w_hat_f, contData->Kd_w_hat); //Using the filtered w_hat for the derivative part
+    LinAlg_vecvecadd(contData->N,contData->Kp_e_hat, contData->Kd_w_hat, temp);
+    LinAlg_vecvecadd(contData->N,contData->e_i_hat, temp, contData->tau); //Ki is already multiplied elsewhere
+    LinAlg_matvecmul(contData->N,contData->N,contData->I_hat, contData->tau, contData->tau);
 }
 
 void Controller_control_alloc_tricopter(contStruct* contData){
@@ -141,7 +142,7 @@ void Controller_control_alloc_tricopter(contStruct* contData){
 
 void Controller_control_alloc_quadcopter(contStruct* contData)
 {
-    float K = 1.f; //This is some constant given by the geometry of the quadcopter-frame
+    double K = 1.f; //This is some constant given by the geometry of the quadcopter-frame
     contData->dF0 = ( - contData->tau[0] + contData->tau[1] - K*contData->tau[2])/(4.f*K); //Flipped the plus/minus signs of the tau[2] terms as the motors spin the opposite direction
     contData->dF1 = (   contData->tau[0] + contData->tau[1] + K*contData->tau[2])/(4.f*K);
     contData->dF2 = (   contData->tau[0] - contData->tau[1] - K*contData->tau[2])/(4.f*K);
@@ -153,7 +154,7 @@ void Controller_control_alloc_quadcopter(contStruct* contData)
     contData->F3 = contData->T + contData->dF3;
 }
 
-void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStruct* estData, float h)
+void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStruct* estData, double h)
 {
     if(!contData->ArmController){
         Controller_check_for_arming(contData, recData, h);
@@ -167,7 +168,7 @@ void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStru
     #ifdef RATE_YAW_CONTROL
     int deadband = 5;
     int raw_yaw_input = abs((int)recData->pulse_width[0] - 1512) > deadband ? (int)recData->pulse_width[0] - 1512 : 0;
-    float d_yaw = raw_yaw_input/10.0f/180.0f*PI*h*contData->YawRate;
+    double d_yaw = raw_yaw_input/10.0f/180.0f*PI*h*contData->YawRate;
     contData->euler[2] -= d_yaw;
     #else
     contData->euler[2] = - ((int)recData->pulse_width[0] - 1512)/10.0f/180.0f*PI; //Yaw
@@ -181,7 +182,7 @@ void Controller_run_quadcopter(contStruct* contData, recStruct* recData, estStru
     Estimator_euler_to_R(contData->euler, contData->Rd); 
 
     //Get throtte command
-    contData->T = (float)(recData->pulse_width[1]);
+    contData->T = (double)(recData->pulse_width[1]);
 
     //Compute the integral of the error vector
     Controller_get_e_hat_integral(contData, estData, h);
@@ -251,10 +252,10 @@ void Controller_reset_integrated_setpoints(contStruct* contData)
     //the angle is simply integrated and sent to the controller, this means that when arming, the yaw angle is integrated for at least 
     //two seconds, leading to a very large heading error internal to the controller. To mitigate this, we reset all input angles to 0
     //when the throttle is below TCutoff:
-    LinAlg_zerovec(contData->euler);
+    LinAlg_zerovec(contData->N,contData->euler);
 }
 
-void Controller_check_for_arming(contStruct* contData, recStruct* recData, float h)
+void Controller_check_for_arming(contStruct* contData, recStruct* recData, double h)
 {
     if( recData->pulse_width[0] < contData->ArmLimits[0] && recData->pulse_width[0] > 0 &&
         recData->pulse_width[1] < contData->ArmLimits[1] && recData->pulse_width[1] > 0 &&
@@ -271,11 +272,11 @@ void Controller_check_for_arming(contStruct* contData, recStruct* recData, float
 void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruct* estData)
 {
     //Get desired input from R/C receiver and convert to desired rotation LinAlg Rd
-    float eul[3] = {0.0f, 0.0f, 0.0f};
+    double eul[3] = {0.0f, 0.0f, 0.0f};
     eul[0] =   ((int)recData->pulse_width[1] - 1500)/10.0f/180.0f*PI; //Roll
     eul[1] = - ((int)recData->pulse_width[3] - 1500)/10.0f/180.0f*PI; //Pitch
     eul[2] = - ((int)recData->pulse_width[2] - 1500)/10.0f/180.0f*PI; //Yaw
-    LinAlg_eye(contData->Rd);
+    LinAlg_eye(contData->N,contData->Rd);
     Estimator_euler_to_R(eul, contData->Rd); 
     
     //Get the desired torque tau
@@ -287,7 +288,7 @@ void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruc
     //Now convert the forces and angle to PWM values.
     //Forces are: FA, FL, FA
     //Angle: a
-    float dutyA, dutyL, dutyR, dutya;
+    double dutyA, dutyL, dutyR, dutya;
     dutyA = Controller_force_to_duty(contData->FA);
     dutyL = Controller_force_to_duty(contData->FL);
     dutyR = Controller_force_to_duty(contData->FR);
@@ -295,7 +296,7 @@ void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruc
 
 
     /*
-    float dutyA_pwm = dutyA/100.f*800.f + 1500.f;
+    double dutyA_pwm = dutyA/100.f*800.f + 1500.f;
     printf("pwm A: %.2f\n", dutyA_pwm);
     set_pwm(dutyA_pwm, 0);
     //Use the duties above to control ESCs and servo. The duties are in [0, 100], need to be converted to microseconds
@@ -305,21 +306,21 @@ void Controller_run_tricopter(contStruct* contData, recStruct* recData, estStruc
     */
 }
 
-float Controller_force_to_duty(float F){
+double Controller_force_to_duty(double F){
     //a and b are parameters for a linear model, obtained in Matlab.
     //The return value is the duty cycle in percent corresponding to
     //a desired force when 4 cell LiPo battery is used
-    float a = 10.2684f;
-    float b = 3.1f;
+    double a = 10.2684f;
+    double b = 3.1f;
     return F*a + b;
 }
 
-float Controller_angle_deg_to_duty(float a){
+double Controller_angle_deg_to_duty(double a){
     //This value is empirically determined
     // 30 deg: 1934
     // 0  deg: 1475
     //-30 deg: 1080
-    float angle_pwm = 1475.0f + 800.0f*(a/30.0f);
+    double angle_pwm = 1475.0f + 800.0f*(a/30.0f);
     return angle_pwm;
 }
 
