@@ -10,7 +10,7 @@ double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //72kB
 double JTJ[PARAMETER_COUNT][PARAMETER_COUNT]; //648B
 double residue_vec[SAMPLE_COUNT]; //8kB
 double gradient_vec[PARAMETER_COUNT];
-//Sample Samples[SAMPLE_COUNT];//24kB
+Sample Samples[SAMPLE_COUNT];//24kB
 
 double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3])
 {
@@ -145,7 +145,7 @@ void Namespace_set_initial_guess_from_samples(int param_count, int sample_count,
 void Namespace_LM_solver()
 {
     printf("ENTERED LM_solver\n");
-    Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,magnetometer_samples,theta);
+    Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
     double lambda = 1E-4; //This worked in matlab
     double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];
     double JTJ_plus_lambda_eye[PARAMETER_COUNT][PARAMETER_COUNT];
@@ -153,8 +153,8 @@ void Namespace_LM_solver()
     int max_iter = 1000;
 
     do{
-        Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,magnetometer_samples,residue_vec);
-        Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,magnetometer_samples,J);
+        Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
+        Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
         LinAlg_mattranspose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
         Namespace_evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
         LinAlg_matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);

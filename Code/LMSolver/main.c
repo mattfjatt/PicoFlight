@@ -62,7 +62,7 @@ void Namespace_get_magnetometer_calib(double theta[9], double correction_matrix[
 void Namespace_get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]); //Done
 
 //Large variables for LM-solver
-#define SAMPLE_COUNT 1000
+#define SAMPLE_COUNT 687 //1000
 #define PARAMETER_COUNT 9
 double theta[PARAMETER_COUNT];
 double d_theta[PARAMETER_COUNT]; //72B, parameter increment
@@ -78,11 +78,17 @@ Sample Samples[SAMPLE_COUNT];//24kB
 
 int load_samples_from_file(const char* filepath, Sample* samples, int sample_count);
 int save_samples_as_c_array(const char* filename, Sample* samples, int sample_count, const char* array_name);
+
+
 int main()
 {
-    //Namespace_LM_solver();
-    load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
-    save_samples_as_c_array("../MagnetometerRawData/mag_cal_array.txt", Samples,SAMPLE_COUNT, "magnetometer_samples");
+    load_samples_from_file("../MagnetometerRawData/MMC5603_data2.txt",Samples, sizeof(Samples)/sizeof(Sample));
+    save_samples_as_c_array("../MagnetometerRawData/MMC5603_array.txt", Samples,SAMPLE_COUNT, "magnetometer_samples_MMC5603");
+    Namespace_LM_solver();
+    
+    // printf("File path = %s. Line number = %d. Function name = %s\n", __FILE__, __LINE__, __func__);
+
+
     printf("END OF PROGRAM\n");
     return 0;
 }
@@ -208,7 +214,7 @@ void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P
 
 void Namespace_LM_solver()
 {
-    load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
+    //load_samples_from_file("../MagnetometerRawData/MMC5603_data2.txt",Samples, sizeof(Samples)/sizeof(Sample));
     Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
     double lambda = 1E-4; //This worked in matlab
     double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];

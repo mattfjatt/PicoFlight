@@ -4,6 +4,7 @@
 
 //Custom includes
 #include "headers/MPU6050.h"
+#include "headers/MMC5603.h"
 #include "headers/LinAlg.h"
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
@@ -19,12 +20,15 @@ void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, doub
 int main()
 {
     stdio_init_all();
-    sleep_ms(5000);
-    uint64_t start = time_us_64();
-    Namespace_LM_solver();
-    uint64_t duration = time_us_64() - start;
-    printf("LM_solver completed in %d microseconds\n", (int)duration);
-    //Main_init(&controllerData, &receiverData, &estimatorData);
+    sleep_ms(7000);
+    MMC5603_init();
+
+    // sleep_ms(5000);
+    // uint64_t start = time_us_64();
+    // Namespace_LM_solver();
+    // uint64_t duration = time_us_64() - start;
+    // printf("LM_solver completed in %d microseconds\n", (int)duration);
+    // //Main_init(&controllerData, &receiverData, &estimatorData);
     
     // int N = 3;
     // double eul[3];
