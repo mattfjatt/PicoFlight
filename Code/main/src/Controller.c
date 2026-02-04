@@ -326,17 +326,23 @@ double Controller_angle_deg_to_duty(double a){
 
 void Controller_print_forces_PWM_tricopter(const contStruct* contData, const char* type){
     if(type == "Forces"){
-        //printf("dFL: %.2f. dFR: %.2f, dFB: %.2f, dFT: %.2f\n", contData->dFL, contData->dFR, contData->dFB, contData->dFT);
-        printf("FL: %.2f. FR: %.2f, FA: %.2f, a: %.2f\n", contData->FL, contData->FR, contData->FA, contData->a*180/3.1415926);
+        PRINTNUM("FL: %.2f.", contData->FL);
+        PRINTNUM("FR: %.2f.", contData->FR);
+        PRINTNUM("FA: %.2f.", contData->FA);
+        PRINTNUM("a: %.2f\n.", contData->a*180/3.1415926);
     }else if(type == "PWM"){
-        printf("PWM L: %d. PWM R: %d, PWM A: %d\n", Controller_force_to_duty(contData->FL), Controller_force_to_duty(contData->FR), Controller_force_to_duty(contData->FA));
+        PRINTNUM("PWM L: %d.", Controller_force_to_duty(contData->FL));
+        PRINTNUM("PWM R: %d.", Controller_force_to_duty(contData->FR));
+        PRINTNUM("PWM A: %d.", Controller_force_to_duty(contData->FA));
     }else{
-        printf("No valid char* sent to print_forces_PWM\n");
+        PRINT("No valid char* sent to print_forces_PWM\n");
     }
     
 }
 
 void Controller_print_forces_PWM_quadcopter(const contStruct* contData){
-    //printf("dF0: %.2f. dF1: %.2f, dF2: %.2f, dF3: %.2f\n", contData->dF0, contData->dF1, contData->dF2, contData->dF3);
-    printf("F0: %.2f. F1: %.2f, F2: %.2f, F3: %.2f\n", contData->F0, contData->F1, contData->F2, contData->F3);
+    PRINTNUM("F0: %.2f.", contData->F0);
+    PRINTNUM("F1: %.2f.", contData->F1);
+    PRINTNUM("F2: %.2f.", contData->F2);
+    PRINTNUM("F3: %.2f\n.", contData->F3);
 }

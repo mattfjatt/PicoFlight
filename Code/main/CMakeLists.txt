@@ -44,7 +44,7 @@ add_executable(main main.c
         src/Receiver.c
         src/Servo.c
         src/Controller.c
-        src/Optimization.c
+        src/Optimizer.c
         src/Config.c)
 
 pico_set_program_name(main "main")

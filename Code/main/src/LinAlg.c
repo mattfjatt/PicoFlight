@@ -35,7 +35,7 @@ void LinAlg_matvecmul(int N, int M, double A[N][M], double x[M], double b[N])
         LinAlg_veccopy(N,temp,b);
     }else{
         if(x == b){
-            printf("Error: Input and output vector can not be the same address in memory for N != M, aborting\n");
+            LOG("Error: Input and output vector can not be the same address in memory for N != M, aborting\n");
             return;
         }
         LinAlg_zerovec(N,b);
@@ -210,7 +210,7 @@ void LinAlg_mattranspose(int N, int M, double A[N][M], double AT[M][N])
         }
     }else{
         if(A == AT){
-            printf("Error: in-place non-square matrix transpose attempted, this is not possible, aborting\n");
+            LOG("Error: in-place non-square matrix transpose attempted, this is not possible, aborting\n");
             return;
         }else{
             //A and AT are separate variables and a tmp variable is not required
@@ -245,7 +245,7 @@ int LinAlg_factorial(int k){
             ret *= i;
         }
     }else if (k < 0){
-        printf("Input to factorial() below 0\n");
+        LOG("Input to factorial() below 0\n");
         ret = -1;
     }
     return ret;
@@ -301,44 +301,44 @@ void LinAlg_rotZ(double t, double R[][3]){
 }
 
 void LinAlg_printscal(double a){
-    printf("%.8f\n",a);
+    PRINTNUM("%.8f\n",a);
 }
 
 void LinAlg_printvec(int N, double v[N]){
     for(int i = 0; i < N; i++){
-        printf("[%.8f]\n",v[i]);
+        PRINTNUM("[%.8f]\n",v[i]);
     }
-    printf("\n");
+    PRINT("\n");
 }
 
 void LinAlg_printmat(int N, int M, const double A[N][M]){
     for(int i = 0; i < N; i++){
-        printf("[");
+        PRINT("[");
         for(int j = 0; j < M; j++){
             if(j < 2){
-                printf(" %.3f,",A[i][j]);
+                PRINTNUM(" %.3f,",A[i][j]);
             }else{
-               printf(" %.3f",A[i][j]); 
+               PRINTNUM(" %.3f",A[i][j]); 
             }
         }
-        printf("]\n");
+        PRINT("]\n");
     }
-    printf("\n");
+    PRINT("\n");
 }
 
 void LinAlg_printvec_comma_separated(int N, double v[N]){
     for(int i = 0; i < N - 1; i++){
-        printf("%.8f,",v[i]);
+        PRINTNUM("%.8f,",v[i]);
     }
-    printf("%.8f",v[N - 1]);
-    printf("\n");
+    PRINTNUM("%.8f",v[N - 1]);
+    PRINT("\n");
 }
 
 void LinAlg_printvec_int(int N, int v[N]){
     for(int i = 0; i < N; i++){
-        printf("[%d]\n",v[i]);
+        PRINTNUM("[%d]\n",v[i]);
     }
-    printf("\n");
+    PRINT("\n");
 }
 
 //New functions required by the solver
@@ -395,7 +395,7 @@ void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P
             index_mismatch++;
         }
         if(index_mismatch > max_switches){
-            printf("Error: Invalid P_update passed to update_global_permutation_vector; it attempts more than one row exchange, aborting\n");
+            PRINT("Error: Invalid P_update passed to update_global_permutation_vector; it attempts more than one row exchange, aborting\n");
             return;
         }
     }
@@ -413,7 +413,7 @@ void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P
 void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k)
 {
     if(from_row < 0 || from_row >= N || to_row < 0 || to_row >= N){
-        printf("Error: from_rom/to_row outside of matrix dimenions in add_multiple_of_row_to_row, exiting\n");
+        PRINT("Error: from_rom/to_row outside of matrix dimenions in add_multiple_of_row_to_row, aborting\n");
         return;
     }
 
@@ -481,7 +481,7 @@ void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N])
 void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N])
 {
     if(diag_kk > (N - 2)){
-        printf("Error: Invalid index for finding largest pivot! Returning\n");
+        PRINT("Error: Invalid index for finding largest pivot! Aborting\n");
         return;
     }
 
@@ -512,7 +512,7 @@ void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], dou
     //C e NxN
 
     if(A == B || A == C || B == C){
-        printf("Error: Aliasing not allowed in matmatmul_no_alias(...)!\n");
+        PRINT("Error: Aliasing not allowed in matmatmul_no_alias(...)! Aborting\n");
         return;
     }
     LinAlg_zeromat(N,N,C);
@@ -557,7 +557,7 @@ void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N],
     double y[N];
     int rank = LinAlg_PLU_decomposition_NXN_in_place(N,P,A);
     if(rank < N){
-        printf("System is rank-deficient!\n");
+        PRINT("System is rank-deficient!\n");
     }else{
         LinAlg_permute_vector_with_P(N,P,b);
         LinAlg_solve_lower_diagonal(N,A,y,b);

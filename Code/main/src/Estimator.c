@@ -61,64 +61,19 @@ void Estimator_init(estStruct* estData){
     LinAlg_zerovec(estData->N,estData->db_hat);
     LinAlg_zeromat(estData->N,estData->N,estData->S);
     LinAlg_zeromat(estData->N,estData->N,estData->Sh);
-    LinAlg_zeromat(estData->N,estData->N,estData->M);
-    estData->k1 = 0.0;
-    estData->k2 = 0.0;
     LinAlg_zerovec(estData->N,estData->v1);
     LinAlg_zerovec(estData->N,estData->v2);
     LinAlg_zerovec(estData->N,estData->v1_hat);
     LinAlg_zerovec(estData->N,estData->v2_hat);
     LinAlg_zerovec(estData->N,estData->Kpe_c);
-    LinAlg_zerovec(estData->N,estData->B);
     LinAlg_zerovec(estData->N,estData->w);
     LinAlg_zerovec(estData->N,estData->a);
     LinAlg_zerovec(estData->N,estData->m);
-    LinAlg_zerovec(estData->N,estData->m_corr);
     LinAlg_zerovec(estData->N,estData->w_hat_f);
 
-    double ident[3][3];
-    LinAlg_eye(estData->N,ident);
-    LinAlg_mat2colvecs3x3(ident, estData->i1, estData->i2, estData->i3);
-    LinAlg_matscalmult(estData->N,estData->N,ident, -1.0, ident);
-    LinAlg_mat2colvecs3x3(ident, estData->ni1, estData->ni2, estData->ni3);
-    LinAlg_zerovec(estData->N,estData->u1);
-    //Can warm-start the b_hat vector here, but the numbers should be checked regularly and updated if needed
-    estData->b_hat[2] = 0.25f*3.14159f/180.0;
+    estData->k1 = 1.0; //For IMU
+    estData->k2 = 1.0; //For magnetometer
 
-    //IMU gyro LP filter time constant
-    estData->Lambda = Lambda;
-};
-
-void Estimator_estimate_R(estStruct* estData,double h){
-    MPU6050_get_imu_data(estData->a, estData->w);
-    //mag_correction(estData); //Correct the magnetic reading
-
-    //Define the reference vectors:
-    LinAlg_normalize(estData->N,estData->a,estData->v1);
-    //Quite a large error on the y-axis of the accel, doing a quick and dirty subtraction:
-    estData->v1[0] = estData->v1[0] + 0.01115f;
-    estData->v1[1] = estData->v1[1] - 0.06315f;
-    //normalize(estData->m_corr,estData->v2); //This gives NaN if norm(m_corr) = 0;
-    LinAlg_mattranspose(estData->N,estData->N,estData->R_hat, estData->R_hat_T);
-    LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->ni3, estData->v1_hat);
-    //matvecmul(estData->N,estData->N,estData->R_hat_T, estData->u1, estData->v2_hat);
-    LinAlg_vec2skew3x3(estData->v1, estData->v1_x);
-    //vec2skew3x3(estData->v2, estData->v2_x);
-
-    //double err[3];
-    //vecvecsub(estData->v2_hat,estData->v2,err); //Err should be close to 0 for properly calibrated magnetometer
-    //printvec(err);
-
-    //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
-    estData->k1 = 1.0000;
-    estData->k2 = 0.0000; //Don't use if magnetic correction parameters are outdated
-    LinAlg_matscalmult(estData->N,estData->N,estData->v1_x, estData->k1, estData->v1_x);
-    //matscalmult(estData->v2_x, estData->k2, estData->v2_x);
-    LinAlg_matvecmul(estData->N,estData->N,estData->v1_x, estData->v1_hat, estData->v1_hat);
-    //matvecmul(estData->v2_x, estData->v2_hat, estData->v2_hat);
-    LinAlg_vecvecadd(estData->N,estData->v1_hat, estData->v2_hat, estData->c);
-    
-    //THESE SHOULD GO TO SETUP
     //Correction term for bias estimation/integral term(they are supposed to be negative, check the paper):
     estData->Kie[0][0] = - KiXe;
     estData->Kie[1][1] = - KiYe;
@@ -128,15 +83,67 @@ void Estimator_estimate_R(estStruct* estData,double h){
     estData->Kpe[1][1] = KpYe;
     estData->Kpe[2][2] = KpZe;
 
+    double ident[3][3];
+    LinAlg_eye(estData->N,ident);
+    LinAlg_mat2colvecs3x3(ident, estData->i1, estData->i2, estData->i3);
+    LinAlg_matscalmult(estData->N,estData->N,ident, -1.0, ident);
+    LinAlg_mat2colvecs3x3(ident, estData->ni1, estData->ni2, estData->ni3);
+    LinAlg_zerovec(estData->N,estData->u1);
+
+    //IMU gyro LP filter time constant
+    estData->Lambda = Lambda;
+
+    //Find in which direction the magnetic fields point at startup, this will serve as reference heading.
+    //To get actual north, a look up table based on location is needed
+    Estimator_find_current_mag_direction(estData);
+};
+
+void Estimator_estimate_R(estStruct* estData,double h){
+    MPU6050_get_imu_data(estData->a, estData->w);
+    MMC5603_get_corrected_mag_reading(estData->m);
+
+    //Define the reference vectors v1 and v2, and ensure no division by 0
+
+    //v1:
+    if(fabs(LinAlg_vecnorm(estData->N, estData->a)) < 0.01){
+        LinAlg_zerovec(estData->N, estData->v1);
+    }else{
+        LinAlg_normalize(estData->N,estData->a,estData->v1);
+    }
+
+    //v2
+    if(fabs(LinAlg_vecnorm(estData->N, estData->m)) < 0.01){
+        LinAlg_zerovec(estData->N, estData->v2);
+    }else{
+        LinAlg_normalize(estData->N,estData->m,estData->v2);
+    }
+    
+    
+    LinAlg_mattranspose(estData->N,estData->N,estData->R_hat, estData->R_hat_T);
+    LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->ni3, estData->v1_hat);
+    LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->u1, estData->v2_hat);
+    LinAlg_vec2skew3x3(estData->v1, estData->v1_x);
+    LinAlg_vec2skew3x3(estData->v2, estData->v2_x);
+
+
+    //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
+    LinAlg_matscalmult(estData->N,estData->N,estData->v1_x, estData->k1, estData->v1_x);
+    LinAlg_matscalmult(estData->N,estData->N,estData->v2_x, estData->k2, estData->v2_x);
+    LinAlg_matvecmul(estData->N,estData->N,estData->v1_x, estData->v1_hat, estData->v1_hat);
+    LinAlg_matvecmul(estData->N,estData->N,estData->v2_x, estData->v2_hat, estData->v2_hat);
+    LinAlg_vecvecadd(estData->N,estData->v1_hat, estData->v2_hat, estData->c);
+    
+
     LinAlg_matvecmul(estData->N,estData->N,estData->Kie, estData->c, estData->b_hat_dot); //b_hat_dot = Kie*c
     LinAlg_vecscalmult(estData->N,estData->b_hat_dot, estData->db_hat, h); //db_hat <- b_hat_dot*h
     LinAlg_vecvecadd(estData->N,estData->b_hat, estData->db_hat, estData->b_hat);
-    //printvec(estData->w_hat);
+    //LinAlg_printvec(estData->w_hat);
 
     //Correction term in R_hat_dot:
     LinAlg_matvecmul(estData->N,estData->N,estData->Kpe, estData->c, estData->Kpe_c);
     LinAlg_vec2skew3x3(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
     LinAlg_vecvecsub(estData->N,estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
+    //LinAlg_zerovec(estData->N, estData->w_hat); //THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
     LinAlg_vec2skew3x3(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
     LinAlg_matmatadd(estData->N,estData->N,estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
     LinAlg_matscalmult(estData->N,estData->N,estData->S,h,estData->Sh); // Sh = S*h
@@ -144,52 +151,46 @@ void Estimator_estimate_R(estStruct* estData,double h){
     LinAlg_matmatmul_small(estData->N,estData->N,estData->R_hat, estData->dR, estData->R_hat); //R_hat <- R_hat*dR
     LinAlg_matnormalizerotation(estData->R_hat); //Ensure R_hat remains in SO(3)
 
-    //Also do a a lowpass of w_hat
+    //Also do a lowpass of w_hat
     Estimator_vecLP(estData->N,estData->w_hat_f, estData->w_hat, h / estData->Lambda);
 }
 
 
-//Mag-sensor not available on MPU 6050, hence these functions are ignored
+void Estimator_find_current_mag_direction(estStruct* estData){
+    //This function should only run when the magnetometer is stationary at roll = pitch = 0
+    //How to stop it from running before this? Look at size of w?
+    int is_stationary = 0;
+    double w_threshold = 0.15;
+    uint32_t start = 0;
+    uint32_t duration = 0;
+    uint32_t threshold = 3000000; //3 seconds
+    while(!is_stationary){
+        start = time_us_32();
+        sleep_ms(20);
+        MPU6050_get_imu_data(estData->a, estData->w);
+        if(fabs(LinAlg_vecnorm(estData->N, estData->w)) > w_threshold){
+            duration = 0;
+            PRINT("MOVING\n");
+        }else{
+            duration += time_us_32() - start;
+            PRINT("STATIONARY\n");
+        }
+        if(duration >= threshold){
+            is_stationary = 1;
+        }
+    }
+    PRINT("Starting tuning...\n");
 
-//void find_current_mag_direction(estStruct* estData){
-//     double fmagread[3];
-//     zerovec(fmagread);
-//     for(int i = 0; i < 200; i++){
-//         get_raw_mag_data(estData->m);
-//         mag_correction(estData); //Correct for mag biases
-//         normalize(estData->m_corr,estData->m_corr);
-//         vecLP(fmagread,estData->m_corr,0.05);
-//         sleep_ms(20); //Delay of 2ms may be too short
-//         //printvec(fmagread);
-//     }
-//     //Setting the filtered, normalized, and corrected magnetometer reading equal to the unit u1 vector used to find v2_hat:
-//     veccopy(fmagread, estData->u1);
-// }
-
-// void mag_correction(estStruct* estData){
-//     /*
-//     0.9887    0.0148    0.0115
-//     0.0148    1.0122    0.0390
-//     0.0115    0.0390    1.0011
-//     */
-//     estData->M[0][0] = 0.9887;
-//     estData->M[0][1] = 0.0148;
-//     estData->M[0][2] = 0.0115;
-
-//     estData->M[1][0] = 0.0148;
-//     estData->M[1][1] = 1.0122;
-//     estData->M[1][2] = 0.0390;
-
-//     estData->M[2][0] = 0.0115;
-//     estData->M[2][1] = 0.0390;
-//     estData->M[2][2] = 1.0011;
-//     /*
-//     35.0389   74.2616  -25.0450
-//     */
-//     estData->B[0] = 35.0389;
-//     estData->B[1] = 74.2616;
-//     estData->B[2] = -25.0450;
-
-//     vecvecsub(estData->m, estData->B, estData->m_corr);
-//     matvecmul(estData->M, estData->m_corr, estData->m_corr);
-// }
+    int N = 3;
+    double fmagread[3];
+    LinAlg_zerovec(N, fmagread);
+    for(int i = 0; i < 200; i++){
+        MMC5603_get_corrected_mag_reading(estData->m);
+        LinAlg_normalize(N,estData->m,estData->m);
+        Estimator_vecLP(N,fmagread,estData->m,0.05);
+        sleep_ms(20); //Delay of 2ms may be too short
+        //printvec(fmagread);
+    }
+    //Setting the filtered, normalized, and corrected magnetometer reading equal to the unit u1 vector used to find v2_hat:
+    LinAlg_veccopy(N,fmagread, estData->u1);
+}

@@ -1,4 +1,5 @@
-#include <stdio.h>
+#include "headers/Config.h"
+#include "headers/Logging.h"
 #include <string.h> //Not sure what this does, but it was included in the mpu6050 example. Maybe the %s formatter
 #include "pico/stdlib.h"
 
@@ -10,7 +11,7 @@
 #include "headers/Receiver.h"
 #include "headers/Servo.h"
 #include "headers/Controller.h"
-#include "headers/Optimization.h"
+#include "headers/Optimizer.h"
 
 void Main_init(contStruct* contData, recStruct* recData, estStruct* estData);
 
@@ -20,51 +21,51 @@ void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, doub
 int main()
 {
     stdio_init_all();
-    sleep_ms(7000);
-    MMC5603_init();
+    //sleep_ms(7000);
+    //MMC5603_init();
 
     // sleep_ms(5000);
     // uint64_t start = time_us_64();
     // Namespace_LM_solver();
     // uint64_t duration = time_us_64() - start;
     // printf("LM_solver completed in %d microseconds\n", (int)duration);
-    // //Main_init(&controllerData, &receiverData, &estimatorData);
+    Main_init(&controllerData, &receiverData, &estimatorData);
     
-    // int N = 3;
-    // double eul[3];
-    // double bias[3];
-    // double wRaw[3];
-    // double empty[3];
-    // LinAlg_zerovec(N,empty);
-    // double h = 0.0005;
-    // double mat[3][3];
-    // sleep_ms(1000);
+    int N = 3;
+    double eul[3];
+    double bias[3];
+    double wRaw[3];
+    double empty[3];
+    LinAlg_zerovec(N,empty);
+    double h = 0.0005;
+    double mat[3][3];
+    sleep_ms(1000);
     
     while (true)
     {
-        // uint64_t start = time_us_64();
-        // Main_run(&controllerData, &receiverData, &estimatorData, h);
+        uint64_t start = time_us_64();
+        Main_run(&controllerData, &receiverData, &estimatorData, h);
         
-        // Estimator_R_to_euler(estimatorData.R_hat, eul);
-        // LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
-        // LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
-        // LinAlg_printmat(N,N,mat);
+        Estimator_R_to_euler(estimatorData.R_hat, eul);
+        LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
+        LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
+        LinAlg_printmat(N,N,mat);
         
-        // sleep_ms(10);
-        // h = (time_us_64() - start)/1e6;
+        sleep_ms(10);
+        h = (time_us_64() - start)/1e6;
     }
 }
 
 void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
 {
+    MPU6050_init();
+    Servo_init();
     Receiver_init(recData);
     Controller_init(contData);
     Estimator_init(estData);
-    MPU6050_init();
-    Servo_init();
 }
 
 void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h)

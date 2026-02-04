@@ -43,7 +43,7 @@ void Servo_init()
 void Servo_set_us(ServoPin_t pin, uint16_t period_us)
 {
     if(pin != SERVO_0 && pin != SERVO_1 && pin != SERVO_2 && pin != SERVO_3){
-        printf("Servo: Invalid servo/ESC pin provided to Servo_set_us()!\n");
+        PRINT("Servo: Invalid servo/ESC pin provided to Servo_set_us()!\n");
     }else{
         if(period_us > MAX_SERVO_DUTY || period_us < MIN_SERVO_DUTY){
             // printf("Servo: period out of accepted range!\n");

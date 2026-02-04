@@ -1,6 +1,6 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
-#include <stdio.h>
+#include "headers/Logging.h"
 #include "pico/stdlib.h"
 #include "hardware/irq.h"
 
@@ -21,7 +21,5 @@ void Receiver_init_struct(recStruct* recData);
 void Receiver_print_data();
 
 void Receiver_init(recStruct* recData);
-
-
 
 #endif

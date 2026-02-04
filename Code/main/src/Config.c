@@ -44,12 +44,12 @@ const double YawRate = 1.0;
 //For the complementary filter
 const double KpXe = 0.5;
 const double KpYe = 0.5; 
-const double KpZe = 0.0; //Set to 0 until magnetometer is introduced
+const double KpZe = 0.5; //Set to 0 until magnetometer is introduced
 
 //For gyro-bias estimation
 const double KiXe = 0.15;
 const double KiYe = 0.15; 
-const double KiZe = 0.0f; //Set to 0 until magnetometer is introduced
+const double KiZe = 0.15; //Set to 0 until magnetometer is introduced
 
 //Gyroscope LP-filter time constant
 const double Lambda = 0.0107;

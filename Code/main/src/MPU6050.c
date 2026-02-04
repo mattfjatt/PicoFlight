@@ -26,7 +26,7 @@ void MPU6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg)
     i2c_write_blocking(i2c_default, MPU6050_I2C_ADDRESS, &read_buffer, 1,true);
     i2c_read_blocking(i2c_default, MPU6050_I2C_ADDRESS, &read_buffer, 1,true);
     
-    printf("0b");
+    PRINT("0b");
     MPU6050_print_binary(read_buffer);
 }
 
@@ -50,7 +50,7 @@ void MPU6050_setup()
     write_buffer[1] = 0b00001000;
     err = i2c_write_blocking(i2c_default, MPU6050_I2C_ADDRESS, write_buffer,2,true);
 
-    printf("MPU_GYRO_CONFIG: ");
+    PRINT("MPU_GYRO_CONFIG: ");
     MPU6050_read_byte_register_I2C(MPU6050_I2C_ADDRESS, MPU6050_GYRO_CONFIG);
     sleep_ms(50);
 
@@ -58,7 +58,7 @@ void MPU6050_setup()
     write_buffer[0] = MPU6050_ACCEL_CONFIG;
     write_buffer[1] = 0b00001000;
     err = i2c_write_blocking(i2c_default, MPU6050_I2C_ADDRESS, write_buffer,2,true);
-    printf("MPU_ACCEL_CONFIG: ");
+    PRINT("MPU_ACCEL_CONFIG: ");
     MPU6050_read_byte_register_I2C(MPU6050_I2C_ADDRESS, MPU6050_ACCEL_CONFIG);
     sleep_ms(50);  
 }
@@ -143,20 +143,20 @@ void MPU6050_get_imu_data(double acc[3], double gyr[3]){
     // gyr[1] = ARS_y*scaling_factor_gyr*d2r; //Gyro y
     // gyr[2] = ARS_z*scaling_factor_gyr*d2r; //Gyro z
     //...but we want the north-east-down (NED) frame. Note how x and y are switched and z is flipped
-    gyr[0] =  ARS_y*scaling_factor_gyr*d2r; //Gyro x in NED
-    gyr[1] =  ARS_x*scaling_factor_gyr*d2r; //Gyro y in NED
+    gyr[0] =    ARS_y*scaling_factor_gyr*d2r; //Gyro x in NED
+    gyr[1] =    ARS_x*scaling_factor_gyr*d2r; //Gyro y in NED
     gyr[2] =  - ARS_z*scaling_factor_gyr*d2r; //Gyro z in NED
 }
 
 void MPU6050_print_binary(uint32_t num) {
     for (int i = 7; i >= 0; i--) {
         if (num & (1 << i))
-            printf("1");
+            PRINT("1");
         else
-            printf("0");
+            PRINT("0");
 
         if (i % 8 == 0)
-            printf(" ");
+            PRINT(" ");
     }
-    printf("\n");
+    PRINT("\n");
 }

@@ -1,8 +1,10 @@
 #ifndef ESTIMATOR_H
 #define ESTIMATOR_H
 
+#include "headers/Logging.h"
 #include "headers/LinAlg.h"
 #include "headers/MPU6050.h"
+#include "headers/MMC5603.h"
 #include "headers/Config.h"
 #include "pico/stdlib.h"
 
@@ -23,12 +25,7 @@ typedef struct{
     double v1[3], v2[3];
     double v1_x[3][3], v2_x[3][3];
 
-    //Correction matrix and bias for the magnetometer:
-    double M[3][3]; 
-    double B[3];
-    double m_corr[3];
-
-    //Raw IMU readings:
+    //Raw readings:
     double w[3];
     double a[3];
     double m[3];
@@ -76,7 +73,7 @@ void Estimator_scalLP(double* y, double* x, double k); //Low pass filter for a s
 void Estimator_init(estStruct* estData);
 
 void Estimator_estimate_R(estStruct* estData, double h);
-// void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
-// void Estimator_mag_correction(estStruct* estData);
+
+void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
 
 #endif

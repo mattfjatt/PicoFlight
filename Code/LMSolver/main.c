@@ -47,6 +47,23 @@ void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N],
 
 
 //--------Make a new source file for the optimizer?--------------
+//Large variables for LM-solver
+#define SAMPLE_COUNT 687 //1000
+#define PARAMETER_COUNT 9
+
+// typedef struct {
+//     double theta[PARAMETER_COUNT];
+//     double d_theta[PARAMETER_COUNT]; //72B, parameter increment
+//     double J[SAMPLE_COUNT][PARAMETER_COUNT]; //72kB
+//     double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //72kB
+//     double JTJ[PARAMETER_COUNT][PARAMETER_COUNT]; //648B
+//     double residue_vec[SAMPLE_COUNT]; //8kB
+//     double gradient_vec[PARAMETER_COUNT];
+//     Sample Samples[SAMPLE_COUNT];//24kB
+// }OptStruct;
+
+// OptStruct optimizationData;
+
 double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3]);                                        //Done
 void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);    //Done
 //According to my current unerstanding of my own implementation, the two functions above are the only functions strictly specific to the magnetometer cost function
@@ -61,9 +78,8 @@ void Namespace_LM_solver(); //Done
 void Namespace_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]); //Done
 void Namespace_get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]); //Done
 
-//Large variables for LM-solver
-#define SAMPLE_COUNT 687 //1000
-#define PARAMETER_COUNT 9
+
+
 double theta[PARAMETER_COUNT];
 double d_theta[PARAMETER_COUNT]; //72B, parameter increment
 double J[SAMPLE_COUNT][PARAMETER_COUNT]; //72kB
@@ -225,6 +241,8 @@ void Namespace_LM_solver()
     do{
         Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
         Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
+
+        
         LinAlg_mattranspose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
         Namespace_evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
         LinAlg_matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);

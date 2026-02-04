@@ -1,9 +1,11 @@
 #include "headers/MMC5603.h"
 
+static double LT[3][3];
+static double offset[3];
+static double solution[9];
 
 void MMC5603_init()
 {
-    printf("File path = %s. Line number = %d. Function name = %s\n", __FILE__, __LINE__, __func__);
     MMC5603_i2c_setup();
     MMC5603_setup();
     MMC5603_calibrate_magnetometer();
@@ -48,16 +50,17 @@ void MMC5603_i2c_setup()
 
 void MMC5603_calibrate_magnetometer()
 {
-    printf("Gathering data points in\n");
+    PRINT("Gathering data points in\n");
 
     for(int i = 3; i >= 0; i--){
-        printf("%d second(s)\n", i);
+        PRINTNUM("%d second(s)\n", i);
         sleep_ms(1000);
     }
 
     MMC5603_gather_samples_for_calib(); //Takes roughly 10 seconds
-    printf("Optimizing...");
-    Namespace_LM_solver();
+    PRINT("Optimizing...\n");
+    Optimizer_LM_solver(solution);
+    MMC5603_get_magnetometer_calib(solution,LT,offset);
 }
 
 void MMC5603_gather_samples_for_calib()
@@ -69,10 +72,10 @@ void MMC5603_gather_samples_for_calib()
         Samples[i] = si;
         sleep_ms(10);
         if(!(i % (SAMPLE_COUNT/10))){
-            printf("%d samples gathered\n", i);
+            PRINTNUM("%d samples gathered\n", i);
         }
     }
-    printf("%d samples gathered\n", SAMPLE_COUNT);
+    PRINTNUM("%d samples gathered\n", SAMPLE_COUNT);
 }
 
 void MMC5603_get_mag_reading(Sample* si)
@@ -100,9 +103,10 @@ void MMC5603_get_mag_reading(Sample* si)
     uint32_t raw_y = (MSB_y << 12) | (LSB_y << 4) | (Lower4_y >> 4);
     uint32_t raw_z = (MSB_z << 12) | (LSB_z << 4) | (Lower4_z >> 4);
 
-    si->x = ((int32_t)raw_x - 524288)*0.0625/1000.0;
-    si->y = ((int32_t)raw_y - 524288)*0.0625/1000.0;
-    si->z = ((int32_t)raw_z - 524288)*0.0625/1000.0;
+    //Need to convert this to BED frame as with the IMU
+    si->x =   ((int32_t)raw_y - 524288)*0.0625/1000.0;
+    si->y =   ((int32_t)raw_x - 524288)*0.0625/1000.0;
+    si->z = - ((int32_t)raw_z - 524288)*0.0625/1000.0;
 }
 
 void MMC5603_read_temp()
@@ -123,10 +127,44 @@ void MMC5603_read_temp()
             //Make the sensor take a new temp measurement
             i2c_write_register(i2c1, MMC5603_I2C_ADDRESS, MMC5603_INTERNAL_CONTROL_0, 1 << MMC5603_TAKE_TMP_MEAS);
             duration = time_us_32() - start;
-            printf("Read time is us = %d. Temp is = %f\n", duration, read_buffer*0.8 - 75.0);
         }
         sleep_ms(100);
     }
+}
+
+void MMC5603_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3])
+{
+    //theta = [Ba = 1/a^2 Bb = 1/b^2 Bc = 1/c^2 px py pz S0 S1 S2]
+    //Cholesky decompose
+    double L[3][3]; 
+    L[0][0] = sqrt(theta[0]);
+    L[1][0] = theta[6]/L[0][0];
+    L[2][0] = theta[7]/L[0][0];
+    L[1][1] = sqrt(theta[1] - L[1][0]*L[1][0]);
+    L[2][1] = (theta[8] - L[1][0]*L[2][0])/L[1][1];
+    L[2][2] = sqrt(theta[2] - L[2][0]*L[2][0] - L[2][1]*L[2][1]);
+    LinAlg_mattranspose(3,3,L,correction_matrix);
+    correction_vector[0] = theta[3];
+    correction_vector[1] = theta[4];
+    correction_vector[2] = theta[5];
+}
+
+void MMC5603_adjust_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3])
+{
+    int N = 3;
+    double m_raw[3];
+    m_raw[0] = si.x;
+    m_raw[1] = si.y;
+    m_raw[2] = si.z;
+    LinAlg_vecvecsub(N,m_raw,correction_vector,m_corr); //m_corr = m_raw - correction_vector
+    LinAlg_matvecmul(N,N,correction_matrix, m_corr, m_corr); //m_corr <- A*m_corr
+}
+
+void  MMC5603_get_corrected_mag_reading(double m_corr[3])
+{
+    Sample si;
+    MMC5603_get_mag_reading(&si);
+    MMC5603_adjust_mag_vector(LT,offset,si,m_corr);
 }
 
 void i2c_read_register(i2c_inst_t* i2c, uint8_t dev_address, uint8_t reg_address, uint8_t* read_buffer, uint8_t len)

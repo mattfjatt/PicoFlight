@@ -89,8 +89,8 @@ void Receiver_init(recStruct* recData)
 }
 
 void Receiver_print_data(){
-    printf("PWM0: %d", receiverData.pulse_width[0]); 
-    printf(". PWM1: %d", receiverData.pulse_width[1]);
-    printf(". PWM2: %d", receiverData.pulse_width[2]);
-    printf(". PWM3: %d\n", receiverData.pulse_width[3]);
+    PRINTNUM("PWM0: %d", receiverData.pulse_width[0]); 
+    PRINTNUM(". PWM1: %d", receiverData.pulse_width[1]);
+    PRINTNUM(". PWM2: %d", receiverData.pulse_width[2]);
+    PRINTNUM(". PWM3: %d\n", receiverData.pulse_width[3]);
 }

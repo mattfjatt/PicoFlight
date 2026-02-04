@@ -1,7 +1,7 @@
 #ifndef LINALG_H
 #define LINALG_H
 
-#include <stdio.h>
+#include "headers/Logging.h"
 #include <math.h>
 
 void LinAlg_zeromat(int N, int M,double A[N][M]); //Fills in a matrix of zeroes

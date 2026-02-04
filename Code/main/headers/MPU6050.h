@@ -1,8 +1,10 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
+#include "headers/Logging.h"
+#include "headers/Config.h"
 #include "pico/stdlib.h"
-#include <stdio.h>
+#include "headers/Logging.h"
 #include "hardware/i2c.h"
 #include "pico/binary_info.h"
 #include "headers/LinAlg.h"

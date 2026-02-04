@@ -4,6 +4,7 @@
 
 //This file contains variable declarations for variable used in various source files 
 
+#define LOGGING
 
 /*---Controller---*/
 

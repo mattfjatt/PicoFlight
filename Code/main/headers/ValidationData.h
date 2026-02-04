@@ -1,7 +1,7 @@
 #ifndef VALIDATIONDATA_H
 #define VALIDATIONDATA_H
 
-#include "headers/Optimization.h"
+#include "headers/Optimizer.h"
 
 /*
 static const Sample magnetometer_samples[687] = {

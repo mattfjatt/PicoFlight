@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include "headers/Logging.h"
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
 #include "headers/LinAlg.h"

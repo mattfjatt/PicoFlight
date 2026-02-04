@@ -1,4 +1,4 @@
-#include "headers/Optimization.h"
+#include "headers/Optimizer.h"
 #include "headers/ValidationData.h"
 
 //Large variables for LM-solver
@@ -12,7 +12,7 @@ double residue_vec[SAMPLE_COUNT]; //8kB
 double gradient_vec[PARAMETER_COUNT];
 Sample Samples[SAMPLE_COUNT];//24kB
 
-double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3])
+double Optimizer_evaluate_ri(int param_count, double opt_params[param_count], double si[3])
 {
     //opt_params = [Ba Bb Bc Px Py Px S0 S1 S2]
     double ri, ui, vi, wi;
@@ -28,7 +28,7 @@ double Namespace_evaluate_ri(int param_count, double opt_params[param_count], do
     return ri;
 }
 
-void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count])
+void Optimizer_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count])
 {
     double Ba = opt_params[0];
     double Bb = opt_params[1];
@@ -53,18 +53,18 @@ void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_cou
     grad_ri[8] = 2*vi*wi;
 }
 
-void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double r_vec[sample_count])
+void Optimizer_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double r_vec[sample_count])
 {
     double si[3];
     for(int i = 0; i < sample_count; i++){
         si[0] = samples[i].x;
         si[1] = samples[i].y;
         si[2] = samples[i].z;
-        r_vec[i] = Namespace_evaluate_ri(param_count, opt_params, si);
+        r_vec[i] = Optimizer_evaluate_ri(param_count, opt_params, si);
     }
 }
 
-void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double J[sample_count][param_count])
+void Optimizer_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double J[sample_count][param_count])
 {
     //The jacobian of r_vec is a matrix where each row is a transposed gradient of ri
     double grad_ri[9];
@@ -73,14 +73,14 @@ void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt
         si[0] = samples[i].x;
         si[1] = samples[i].y;
         si[2] = samples[i].z;
-        Namespace_evaluate_gradient_ri(param_count, opt_params, si, grad_ri);
+        Optimizer_evaluate_gradient_ri(param_count, opt_params, si, grad_ri);
         for(int j = 0; j < param_count; j++){
             J[i][j] = grad_ri[j];
         }
     }
 }
 
-void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count])
+void Optimizer_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count])
 {
     //g = JT*r
     LinAlg_zerovec(param_count,g);
@@ -91,7 +91,7 @@ void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[p
     }
 }
 
-void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, const Sample* samples, double theta_0[param_count])
+void Optimizer_set_initial_guess_from_samples(int param_count, int sample_count, const Sample* samples, double theta_0[param_count])
 {
     //Optimally the struct array should be sorted such that all values can be used, but rn we just use the largest and smallest value in each dimension.
     double max_x = 0, min_x = 0;
@@ -142,10 +142,9 @@ void Namespace_set_initial_guess_from_samples(int param_count, int sample_count,
     theta_0[8] = 0;
 }
 
-void Namespace_LM_solver()
+void Optimizer_LM_solver(double solution[PARAMETER_COUNT])
 {
-    printf("ENTERED LM_solver\n");
-    Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
+    Optimizer_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
     double lambda = 1E-4; //This worked in matlab
     double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];
     double JTJ_plus_lambda_eye[PARAMETER_COUNT][PARAMETER_COUNT];
@@ -153,10 +152,10 @@ void Namespace_LM_solver()
     int max_iter = 1000;
 
     do{
-        Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
-        Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
+        Optimizer_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
+        Optimizer_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
         LinAlg_mattranspose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
-        Namespace_evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
+        Optimizer_evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
         LinAlg_matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);
         LinAlg_eye(PARAMETER_COUNT,lambdaEye);
         LinAlg_matscalmult(PARAMETER_COUNT,PARAMETER_COUNT,lambdaEye,lambda,lambdaEye);
@@ -169,52 +168,11 @@ void Namespace_LM_solver()
     } while (LinAlg_vecnorm(PARAMETER_COUNT,d_theta) > 1E-6 && iter < max_iter);
     
     if(iter == max_iter){
-        printf("Maximum allowed iterations of %d exceeded, some problem occured, probably bad initial estimate!\n", max_iter);
+        PRINTNUM("Maximum allowed iterations of %d exceeded, some problem occured, probably bad initial estimate!\n", max_iter);
     }else{
-        printf("Solution to the system at %d iterations with vecnorm(d_theta) = %.8f is T = \n", iter, LinAlg_vecnorm(PARAMETER_COUNT,d_theta));
+        PRINTNUM("Solution to the system at %d iterations with vecnorm(d_theta) = ", iter);
+        PRINTNUM("%f\n", LinAlg_vecnorm(PARAMETER_COUNT,d_theta));
         LinAlg_printvec(PARAMETER_COUNT, theta);
-        // double mag_correction_matrix[3][3];
-        // double mag_correction_vector[3];
-        // Namespace_get_magnetometer_calib(theta, mag_correction_matrix, mag_correction_vector);
-        // printf("Correction matrix = \n");
-        // LinAlg_printmat(3,3,mag_correction_matrix);
-        // printf("Correction vector = \n");
-        // LinAlg_printvec(3,mag_correction_vector);
-
-        // //Print some corrected mag samples
-        // double m_corr[3];
-        // for(int i = 0; i < SAMPLE_COUNT; i+=50){
-        //     Namespace_get_corrected_mag_vector(mag_correction_matrix, mag_correction_vector, Samples[i], m_corr);
-        //     printf("m_corr of norm %f is \n", vecnorm(3, m_corr));
-        //     LinAlg_printvec(3,m_corr);
-        // }
+        LinAlg_veccopy(PARAMETER_COUNT,theta,solution);
     }
-}
-
-void Namespace_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3])
-{
-    //theta = [Ba = 1/a^2 Bb = 1/b^2 Bc = 1/c^2 px py pz S0 S1 S2]
-    //Cholesky decompose
-    double L[3][3]; 
-    L[0][0] = sqrt(theta[0]);
-    L[1][0] = theta[6]/L[0][0];
-    L[2][0] = theta[7]/L[0][0];
-    L[1][1] = sqrt(theta[1] - L[1][0]*L[1][0]);
-    L[2][1] = (theta[8] - L[1][0]*L[2][0])/L[1][1];
-    L[2][2] = sqrt(theta[2] - L[2][0]*L[2][0] - L[2][1]*L[2][1]);
-    LinAlg_mattranspose(3,3,L,correction_matrix);
-    correction_vector[0] = theta[3];
-    correction_vector[1] = theta[4];
-    correction_vector[2] = theta[5];
-}
-
-void Namespace_get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3])
-{
-    int N = 3;
-    double m_raw[3];// = {si->x, si->y, si->z};
-    m_raw[0] = si.x;
-    m_raw[1] = si.y;
-    m_raw[2] = si.z;
-    LinAlg_vecvecsub(N,m_raw,correction_vector,m_corr); //m_corr = m_raw - correction_vector
-    LinAlg_matvecmul(N,N,correction_matrix, m_corr, m_corr); //m_corr <- A*m_corr
 }
