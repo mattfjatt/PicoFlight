@@ -21,14 +21,10 @@ void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, doub
 int main()
 {
     stdio_init_all();
-    //sleep_ms(7000);
-    //MMC5603_init();
+    sleep_ms(7000);
+    MMC5603_init();
 
-    // sleep_ms(5000);
-    // uint64_t start = time_us_64();
-    // Namespace_LM_solver();
-    // uint64_t duration = time_us_64() - start;
-    // printf("LM_solver completed in %d microseconds\n", (int)duration);
+
     Main_init(&controllerData, &receiverData, &estimatorData);
     
     int N = 3;
@@ -36,7 +32,11 @@ int main()
     double bias[3];
     double wRaw[3];
     double empty[3];
+    double various_data[3];
+    double a_f[3];
     LinAlg_zerovec(N,empty);
+    LinAlg_zerovec(N,empty);
+    LinAlg_zerovec(N,various_data);
     double h = 0.0005;
     double mat[3][3];
     sleep_ms(1000);
@@ -51,7 +51,11 @@ int main()
         LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
         LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
         LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
-        LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
+        various_data[0] = LinAlg_vecnorm(N, estimatorData.m);
+        various_data[1] = LinAlg_vecnorm(N, estimatorData.a);
+        Estimator_vecLP(N,a_f,estimatorData.a,0.005);
+        LinAlg_colvecs2mat3x3(mat,eul,bias,a_f);
+        //LinAlg_colvecs2mat3x3(mat,eul,estimatorData.v2,estimatorData.u1);
         LinAlg_printmat(N,N,mat);
         
         sleep_ms(10);

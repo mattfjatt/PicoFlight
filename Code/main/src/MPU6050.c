@@ -70,7 +70,28 @@ void MPU6050_init()
     MPU6050_setup();
 }
 
+void MPU6050_six_point_accel_correction(double acc[3])
+{
+    //Data for test-rig used at table (the one with the bread-board)
+    double Xp = 0.979;
+    double Xm = - 1.018;
+    double Yp = 1.070;
+    double Ym = - 0.935;
+    double Zp = 1.124;
+    double Zm = - 0.948;
 
+    double px = (Xp + Xm)/2;
+    double py = (Yp + Ym)/2;
+    double pz = (Zp + Zm)/2;
+
+    double ax = (Xp - Xm)/2;
+    double ay = (Yp - Ym)/2;
+    double az = (Zp - Zm)/2;
+
+    acc[0] = (acc[0] - px)/ax;
+    acc[1] = (acc[1] - py)/ay;
+    acc[2] = (acc[2] - pz)/az;
+}
 
 void MPU6050_get_imu_data(double acc[3], double gyr[3]){
     int err;

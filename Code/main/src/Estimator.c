@@ -103,17 +103,19 @@ void Estimator_estimate_R(estStruct* estData,double h){
     MMC5603_get_corrected_mag_reading(estData->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
-
+    int check_magnitude = 0;
     //v1:
-    if(fabs(LinAlg_vecnorm(estData->N, estData->a)) < 0.01){
+    if(LinAlg_vecnorm(estData->N, estData->a) > 1.15 || LinAlg_vecnorm(estData->N, estData->a) < 0.85 && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
         LinAlg_zerovec(estData->N, estData->v1);
+        LOG("Magnitude of accel below limit\n");
     }else{
         LinAlg_normalize(estData->N,estData->a,estData->v1);
     }
 
     //v2
-    if(fabs(LinAlg_vecnorm(estData->N, estData->m)) < 0.01){
+    if(LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80 && check_magnitude){
         LinAlg_zerovec(estData->N, estData->v2);
+        LOG("Magnitude of mag below limit\n");
     }else{
         LinAlg_normalize(estData->N,estData->m,estData->v2);
     }
@@ -143,7 +145,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     LinAlg_matvecmul(estData->N,estData->N,estData->Kpe, estData->c, estData->Kpe_c);
     LinAlg_vec2skew3x3(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
     LinAlg_vecvecsub(estData->N,estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
-    //LinAlg_zerovec(estData->N, estData->w_hat); //THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
+    //LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
     LinAlg_vec2skew3x3(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
     LinAlg_matmatadd(estData->N,estData->N,estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
     LinAlg_matscalmult(estData->N,estData->N,estData->S,h,estData->Sh); // Sh = S*h
