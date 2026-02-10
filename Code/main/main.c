@@ -22,9 +22,9 @@ int main()
 {
     stdio_init_all();
     sleep_ms(7000);
+
+
     MMC5603_init();
-
-
     Main_init(&controllerData, &receiverData, &estimatorData);
     
     int N = 3;
@@ -51,12 +51,14 @@ int main()
         LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
         LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
         LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
-        various_data[0] = LinAlg_vecnorm(N, estimatorData.m);
-        various_data[1] = LinAlg_vecnorm(N, estimatorData.a);
-        Estimator_vecLP(N,a_f,estimatorData.a,0.005);
-        LinAlg_colvecs2mat3x3(mat,eul,bias,a_f);
-        //LinAlg_colvecs2mat3x3(mat,eul,estimatorData.v2,estimatorData.u1);
-        LinAlg_printmat(N,N,mat);
+        // various_data[0] = LinAlg_vecnorm(N, estimatorData.m);
+        // various_data[1] = LinAlg_vecnorm(N, a_f);
+        // Estimator_vecLP(N,a_f,estimatorData.a,0.005);
+        LinAlg_colvecs2mat3x3(mat,eul,bias,wRaw);
+        //LinAlg_colvecs2mat3x3(mat,eul,estimatorData.v1,estimatorData.v1_hat);
+        //LinAlg_printmat(N,N,mat);
+        // LinAlg_matvecmul(N,N,estimatorData.R_hat_T, estimatorData.ni3, various_data);
+        // LinAlg_printvec(N,various_data);
         
         sleep_ms(10);
         h = (time_us_64() - start)/1e6;

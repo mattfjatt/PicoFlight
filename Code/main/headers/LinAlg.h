@@ -68,6 +68,10 @@ void LinAlg_printvec_comma_separated(int N, double v[N]);
 
 void LinAlg_printvec_int(int N, int v[N]);
 
+void LinAlg_find_parallel_vec(int N, double a[N], double b[N], double b_parr[N]); //Finds the part of b, b_parr, that is parallel to a
+
+void LinAlg_find_perpendicular_vec(int N, double a[N], double b[N], double b_perp[N]); //Finds the part of b, b_perp, that is perpendicular to a
+
 //New functions required by the solver
 
 int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);

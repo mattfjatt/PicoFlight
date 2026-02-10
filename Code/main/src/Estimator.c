@@ -65,6 +65,8 @@ void Estimator_init(estStruct* estData){
     LinAlg_zerovec(estData->N,estData->v2);
     LinAlg_zerovec(estData->N,estData->v1_hat);
     LinAlg_zerovec(estData->N,estData->v2_hat);
+    LinAlg_zerovec(estData->N,estData->v1_x_v1_hat);
+    LinAlg_zerovec(estData->N,estData->v2_x_v2_hat);
     LinAlg_zerovec(estData->N,estData->Kpe_c);
     LinAlg_zerovec(estData->N,estData->w);
     LinAlg_zerovec(estData->N,estData->a);
@@ -100,6 +102,7 @@ void Estimator_init(estStruct* estData){
 
 void Estimator_estimate_R(estStruct* estData,double h){
     MPU6050_get_imu_data(estData->a, estData->w);
+    MPU6050_six_point_accel_correction(estData->a);
     MMC5603_get_corrected_mag_reading(estData->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
@@ -107,7 +110,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     //v1:
     if(LinAlg_vecnorm(estData->N, estData->a) > 1.15 || LinAlg_vecnorm(estData->N, estData->a) < 0.85 && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
         LinAlg_zerovec(estData->N, estData->v1);
-        LOG("Magnitude of accel below limit\n");
+        LOG("Magnitude of accel outside limits\n");
     }else{
         LinAlg_normalize(estData->N,estData->a,estData->v1);
     }
@@ -115,15 +118,35 @@ void Estimator_estimate_R(estStruct* estData,double h){
     //v2
     if(LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80 && check_magnitude){
         LinAlg_zerovec(estData->N, estData->v2);
-        LOG("Magnitude of mag below limit\n");
+        LOG("Magnitude of mag outside limits\n");
     }else{
         LinAlg_normalize(estData->N,estData->m,estData->v2);
     }
     
     
     LinAlg_mattranspose(estData->N,estData->N,estData->R_hat, estData->R_hat_T);
+    //Create v1_hat
     LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->ni3, estData->v1_hat);
+    //Create v2_hat
     LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->u1, estData->v2_hat);
+
+    // //We only use the components of v2 and v2_hat that are perpendicular to v1_hat, this is to prevent
+    // //the noisy magnetic vector from interfering with "roll" and "pitch" as these angles are stabilized by v1 and v1_hat anyway
+    LinAlg_find_perpendicular_vec(estData->N,estData->v1_hat,estData->v2_hat,estData->v2_hat);
+    LinAlg_find_perpendicular_vec(estData->N,estData->v1_hat,estData->v2,estData->v2);
+    
+    // //Now these two vectors need to be normalized again
+    // if(LinAlg_vecnorm(estData->N, estData->v1) > 0 && LinAlg_vecnorm(estData->N, estData->v2) > 0){
+    //     LinAlg_normalize(estData->N, estData->v2_hat, estData->v2_hat);
+    //     LinAlg_normalize(estData->N, estData->v2, estData->v2);
+    // }
+
+    //Attitude estimate does not work at all with this method, printing som stuff for debugging
+    double mat[3][3];
+    LinAlg_colvecs2mat3x3(mat,estData->v1_hat, estData->v2_hat, estData->v2);
+    LinAlg_printmat(3,3,mat);
+
+    //Make the skew-symmetric matrices
     LinAlg_vec2skew3x3(estData->v1, estData->v1_x);
     LinAlg_vec2skew3x3(estData->v2, estData->v2_x);
 
@@ -131,9 +154,9 @@ void Estimator_estimate_R(estStruct* estData,double h){
     //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
     LinAlg_matscalmult(estData->N,estData->N,estData->v1_x, estData->k1, estData->v1_x);
     LinAlg_matscalmult(estData->N,estData->N,estData->v2_x, estData->k2, estData->v2_x);
-    LinAlg_matvecmul(estData->N,estData->N,estData->v1_x, estData->v1_hat, estData->v1_hat);
-    LinAlg_matvecmul(estData->N,estData->N,estData->v2_x, estData->v2_hat, estData->v2_hat);
-    LinAlg_vecvecadd(estData->N,estData->v1_hat, estData->v2_hat, estData->c);
+    LinAlg_matvecmul(estData->N,estData->N,estData->v1_x, estData->v1_hat, estData->v1_x_v1_hat);
+    LinAlg_matvecmul(estData->N,estData->N,estData->v2_x, estData->v2_hat, estData->v2_x_v2_hat);
+    LinAlg_vecvecadd(estData->N,estData->v1_x_v1_hat, estData->v2_x_v2_hat, estData->c);
     
 
     LinAlg_matvecmul(estData->N,estData->N,estData->Kie, estData->c, estData->b_hat_dot); //b_hat_dot = Kie*c

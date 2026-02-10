@@ -34,6 +34,8 @@ void MPU6050_setup();
 
 void MPU6050_get_imu_data(double acc[3], double gyr[3]);
 
+void MPU6050_six_point_accel_correction(double acc[3]); //This is a rough calibration that can be applied to the accelerometer data
+
 void MPU6050_i2c_setup();
 
 void MPU6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg);

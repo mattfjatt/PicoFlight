@@ -21,7 +21,7 @@ typedef struct{
     double db_hat[3];
 
     //Reference vectors and skew symmetric forms:
-    double v1_hat[3], v2_hat[3];
+    double v1_hat[3], v2_hat[3], v1_x_v1_hat[3], v2_x_v2_hat[3];
     double v1[3], v2[3];
     double v1_x[3][3], v2_x[3][3];
 

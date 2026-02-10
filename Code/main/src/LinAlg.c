@@ -341,6 +341,23 @@ void LinAlg_printvec_int(int N, int v[N]){
     PRINT("\n");
 }
 
+void LinAlg_find_parallel_vec(int N, double a[N], double b[N], double b_parr[N])
+{
+    //b_parr = b'*a*a/|a|^2
+    double a_T_b = LinAlg_vecdot(N,a,b);
+    double norm_a = LinAlg_vecnorm(N,a);
+    LinAlg_vecscalmult(N,a,b_parr,a_T_b); //b_parr <- b'*a*a
+    LinAlg_vecscalmult(N,b_parr,b_parr,1/(norm_a*norm_a)); //b_parr <- b_parr/|a|^2
+}
+
+void LinAlg_find_perpendicular_vec(int N, double a[N], double b[N], double b_perp[N])
+{
+    //b_perp = b - b_parr
+    double b_parr[3]; //Can simply use b_perp here for memory saving
+    LinAlg_find_parallel_vec(N,a,b,b_parr);
+    LinAlg_vecvecsub(N,b,b_parr,b_perp);
+}
+
 //New functions required by the solver
 
 int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])
