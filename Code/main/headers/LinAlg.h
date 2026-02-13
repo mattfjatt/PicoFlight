@@ -72,6 +72,8 @@ void LinAlg_find_parallel_vec(int N, double a[N], double b[N], double b_parr[N])
 
 void LinAlg_find_perpendicular_vec(int N, double a[N], double b[N], double b_perp[N]); //Finds the part of b, b_perp, that is perpendicular to a
 
+double LinAlg_angle_between_vecs(int N, double a[N], double b[N], int returnDegrees); //Returns result in degrees if returnDegrees > 0
+
 //New functions required by the solver
 
 int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);

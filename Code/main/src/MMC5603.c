@@ -52,7 +52,7 @@ void MMC5603_calibrate_magnetometer()
 {
     PRINT("Gathering data points in\n");
 
-    for(int i = 3; i >= 0; i--){
+    for(int i = 3; i >= 1; i--){
         PRINTNUM("%d second(s)\n", i);
         sleep_ms(1000);
     }
@@ -103,9 +103,10 @@ void MMC5603_get_mag_reading(Sample* si)
     uint32_t raw_y = (MSB_y << 12) | (LSB_y << 4) | (Lower4_y >> 4);
     uint32_t raw_z = (MSB_z << 12) | (LSB_z << 4) | (Lower4_z >> 4);
 
-    //Need to convert this to NED frame as with the IMU
-    si->x =   ((int32_t)raw_y - 524288)*0.0625/1000.0;
-    si->y =   ((int32_t)raw_x - 524288)*0.0625/1000.0;
+    //Need to convert this to NED frame as with the IMU.
+    //Note that the frame printed on the Adafruit MMC5603 is wrong!
+    si->x =   ((int32_t)raw_x - 524288)*0.0625/1000.0;
+    si->y = - ((int32_t)raw_y - 524288)*0.0625/1000.0;
     si->z = - ((int32_t)raw_z - 524288)*0.0625/1000.0;
 }
 

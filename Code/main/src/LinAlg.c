@@ -358,6 +358,19 @@ void LinAlg_find_perpendicular_vec(int N, double a[N], double b[N], double b_per
     LinAlg_vecvecsub(N,b,b_parr,b_perp);
 }
 
+double LinAlg_angle_between_vecs(int N, double a[N], double b[N], int returnDegrees)
+{
+    double theta = acos(LinAlg_vecdot(N,a,b)/(LinAlg_vecnorm(N,a)*LinAlg_vecnorm(N,b)));
+    
+    if(returnDegrees > 0){
+        return theta*180/3.14159;
+    }else if(returnDegrees == 0){
+        return theta;
+    }else{
+        return 0;
+    }
+}
+
 //New functions required by the solver
 
 int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])

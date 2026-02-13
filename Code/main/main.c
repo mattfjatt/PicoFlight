@@ -23,7 +23,6 @@ int main()
     stdio_init_all();
     sleep_ms(7000);
 
-
     MMC5603_init();
     Main_init(&controllerData, &receiverData, &estimatorData);
     
@@ -56,7 +55,7 @@ int main()
         // Estimator_vecLP(N,a_f,estimatorData.a,0.005);
         LinAlg_colvecs2mat3x3(mat,eul,bias,wRaw);
         //LinAlg_colvecs2mat3x3(mat,eul,estimatorData.v1,estimatorData.v1_hat);
-        //LinAlg_printmat(N,N,mat);
+        LinAlg_printmat(N,N,mat);
         // LinAlg_matvecmul(N,N,estimatorData.R_hat_T, estimatorData.ni3, various_data);
         // LinAlg_printvec(N,various_data);
         

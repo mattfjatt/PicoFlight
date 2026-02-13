@@ -73,7 +73,7 @@ void Estimator_init(estStruct* estData){
     LinAlg_zerovec(estData->N,estData->m);
     LinAlg_zerovec(estData->N,estData->w_hat_f);
 
-    estData->k1 = 1.0; //For IMU
+    estData->k1 = 1.0; //For accelerometer
     estData->k2 = 1.0; //For magnetometer
 
     //Correction term for bias estimation/integral term(they are supposed to be negative, check the paper):
@@ -98,6 +98,11 @@ void Estimator_init(estStruct* estData){
     //Find in which direction the magnetic fields point at startup, this will serve as reference heading.
     //To get actual north, a look up table based on location is needed
     Estimator_find_current_mag_direction(estData);
+
+    //Warm-starting the gyro bias on the desktop MPU5060
+    estData->b_hat[0] = - 2.073/180*3.14159;
+    estData->b_hat[1] =   1.204/180*3.14159;
+    estData->b_hat[2] = - 1.020/180*3.14159;
 };
 
 void Estimator_estimate_R(estStruct* estData,double h){
@@ -106,9 +111,9 @@ void Estimator_estimate_R(estStruct* estData,double h){
     MMC5603_get_corrected_mag_reading(estData->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
-    int check_magnitude = 0;
+    int check_magnitude = 1;
     //v1:
-    if(LinAlg_vecnorm(estData->N, estData->a) > 1.15 || LinAlg_vecnorm(estData->N, estData->a) < 0.85 && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
+    if((LinAlg_vecnorm(estData->N, estData->a) > 1.15 || LinAlg_vecnorm(estData->N, estData->a) < 0.85) && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
         LinAlg_zerovec(estData->N, estData->v1);
         LOG("Magnitude of accel outside limits\n");
     }else{
@@ -116,7 +121,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     }
 
     //v2
-    if(LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80 && check_magnitude){
+    if((LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80) && check_magnitude){
         LinAlg_zerovec(estData->N, estData->v2);
         LOG("Magnitude of mag outside limits\n");
     }else{
@@ -129,22 +134,6 @@ void Estimator_estimate_R(estStruct* estData,double h){
     LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->ni3, estData->v1_hat);
     //Create v2_hat
     LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->u1, estData->v2_hat);
-
-    // //We only use the components of v2 and v2_hat that are perpendicular to v1_hat, this is to prevent
-    // //the noisy magnetic vector from interfering with "roll" and "pitch" as these angles are stabilized by v1 and v1_hat anyway
-    LinAlg_find_perpendicular_vec(estData->N,estData->v1_hat,estData->v2_hat,estData->v2_hat);
-    LinAlg_find_perpendicular_vec(estData->N,estData->v1_hat,estData->v2,estData->v2);
-    
-    // //Now these two vectors need to be normalized again
-    // if(LinAlg_vecnorm(estData->N, estData->v1) > 0 && LinAlg_vecnorm(estData->N, estData->v2) > 0){
-    //     LinAlg_normalize(estData->N, estData->v2_hat, estData->v2_hat);
-    //     LinAlg_normalize(estData->N, estData->v2, estData->v2);
-    // }
-
-    //Attitude estimate does not work at all with this method, printing som stuff for debugging
-    double mat[3][3];
-    LinAlg_colvecs2mat3x3(mat,estData->v1_hat, estData->v2_hat, estData->v2);
-    LinAlg_printmat(3,3,mat);
 
     //Make the skew-symmetric matrices
     LinAlg_vec2skew3x3(estData->v1, estData->v1_x);
