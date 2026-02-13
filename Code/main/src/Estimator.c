@@ -99,10 +99,8 @@ void Estimator_init(estStruct* estData){
     //To get actual north, a look up table based on location is needed
     Estimator_find_current_mag_direction(estData);
 
-    //Warm-starting the gyro bias on the desktop MPU5060
-    estData->b_hat[0] = - 2.073/180*3.14159;
-    estData->b_hat[1] =   1.204/180*3.14159;
-    estData->b_hat[2] = - 1.020/180*3.14159;
+    //Warm-starting gyro bias
+    Estimator_set_initial_gyro_bias(estData);
 };
 
 void Estimator_estimate_R(estStruct* estData,double h){
@@ -157,7 +155,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     LinAlg_matvecmul(estData->N,estData->N,estData->Kpe, estData->c, estData->Kpe_c);
     LinAlg_vec2skew3x3(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
     LinAlg_vecvecsub(estData->N,estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
-    //LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
+    // LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
     LinAlg_vec2skew3x3(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
     LinAlg_matmatadd(estData->N,estData->N,estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
     LinAlg_matscalmult(estData->N,estData->N,estData->S,h,estData->Sh); // Sh = S*h
@@ -193,7 +191,8 @@ void Estimator_find_current_mag_direction(estStruct* estData){
             is_stationary = 1;
         }
     }
-    PRINT("Starting tuning...\n");
+
+    PRINT("Gathering magnetometer samples...\n");
 
     int N = 3;
     double fmagread[3];
@@ -205,6 +204,27 @@ void Estimator_find_current_mag_direction(estStruct* estData){
         sleep_ms(20); //Delay of 2ms may be too short
         //printvec(fmagread);
     }
-    //Setting the filtered, normalized, and corrected magnetometer reading equal to the unit u1 vector used to find v2_hat:
+    //Setting the filtered, normalized, and corrected magnetometer reading equal to the unit u1 vector used to calculate v2_hat:
     LinAlg_veccopy(N,fmagread, estData->u1);
+    PRINT("Done\n");
+}
+
+void Estimator_set_initial_gyro_bias(estStruct* estData)
+{
+    PRINT("Gathering IMU gyro samples...\n");
+    double sum[3];
+    int samples = 100;
+    LinAlg_zerovec(3, sum);
+    for(int i = 0; i < samples; i++){
+        MPU6050_get_imu_data(estData->a, estData->w);
+        for(int j = 0; j < 3; j++){
+            sum[j] += estData->w[j];
+        }
+        sleep_ms(10);
+    }
+    //Set the initial gyro bias
+    for(int j = 0; j < 3; j++){
+        estData->b_hat[j] = sum[j]/samples;
+    }
+    PRINT("Done\n");
 }

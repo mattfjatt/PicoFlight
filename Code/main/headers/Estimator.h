@@ -76,4 +76,6 @@ void Estimator_estimate_R(estStruct* estData, double h);
 
 void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
 
+void Estimator_set_initial_gyro_bias(estStruct* estData);
+
 #endif
