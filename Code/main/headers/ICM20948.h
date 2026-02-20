@@ -33,6 +33,11 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3]);
 
 //Register map
 
+#define ICM20948_USER_BANK_0 0
+#define ICM20948_USER_BANK_1 1
+#define ICM20948_USER_BANK_2 2
+#define ICM20948_USER_BANK_3 3
+
 //User bank 0
 #define ICM20948_WHO_AM_I 0
 

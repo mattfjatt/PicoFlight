@@ -36,9 +36,11 @@ void ICM20948_init()
 
 
     //Next, set gyro and acc full scale ranges. These registers are in user bank 2:
-    ICM20948_set_register_user_bank(2);
+    ICM20948_set_register_user_bank(ICM20948_USER_BANK_2);
     ICM20948_set_measurement_ranges(ICM20948_GYRO_FS_500, ICM20948_ACCEL_FS_4G);
-    ICM20948_set_register_user_bank(0); //Always set back to zero, otherwise can't read sensor registers later
+    ICM20948_set_register_user_bank(ICM20948_USER_BANK_0); //Always set user bank back to 0, otherwise can't read sensor registers later
+
+    //FIFO-buffer setup
 }
 
 void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
@@ -109,7 +111,6 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3])
 
     //Get the data. Comes in two's complement
     ICM20948_read_from_register(ICM20948_ACCEL_XOUT_H, tx_buf, rx_buf,sizeof(tx_buf),cs_pin);
-    //Assuming default is +-2g, divide by 16384
     uint16_t MSB_x = rx_buf[1];
     uint16_t LSB_x = rx_buf[2];
     uint16_t MSB_y = rx_buf[3];
@@ -122,7 +123,7 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3])
     int16_t ACC_z = (MSB_z << 8) | LSB_z;
 
     //Note that the frame printed on the Adafruit ICM20498 is wrong!
-    //COnvert to NED frame
+    //Convert to NED frame
     acc[0] =   ACC_x/accel_sensitivity;
     acc[1] = - ACC_y/accel_sensitivity;
     acc[2] = - ACC_z/accel_sensitivity;
@@ -139,7 +140,6 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3])
     int16_t GYR_z = (MSB_z << 8) | LSB_z;
 
     double d2r = 3.14159265/180;
-    //Assuming default is +-250dps, divide by 131
     //Note that the frame printed on the Adafruit ICM20498 is wrong!
     //Convert to NED frame
     gyr[0] =   GYR_x/gyro_sensitivity*d2r;
@@ -155,7 +155,7 @@ void ICM20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_u
 
     ICM20948_read_from_register(dev_register,tx_buf,rx_buf,sizeof(tx_buf),cs_pin);
     uint8_t value_from_register = rx_buf[1];
-    value_from_register &= ~(mask); //This sets all bits we want to control to 0
+    value_from_register &= ~(mask); //This sets all bits we want to update to 0
     uint8_t value_to_register = value_from_register | (bits_to_update & mask);
     tx_buf[1] = value_to_register;
     ICM20948_write_to_register(dev_register,tx_buf,rx_buf,sizeof(tx_buf), cs_pin);
@@ -167,7 +167,6 @@ void ICM20948_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t*
     gpio_put(cs_pin,0); //Chip select is active low
     int num = spi_write_read_blocking(spi0, tx_buf, rx_buf, n_bytes);
     gpio_put(cs_pin,1);
-    //PRINTNUM("Number of bytes written/read = %d\n", num);
 }
 
 void ICM20948_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin)
