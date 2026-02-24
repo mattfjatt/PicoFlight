@@ -230,7 +230,7 @@ void Estimator_set_initial_gyro_bias(estStruct* estData)
 
 void Estimator_get_imu_data(estStruct* estData)
 {
-    // MPU6050_get_imu_data(estData->a, estData->w);
-    // MPU6050_six_point_accel_correction(estData->a);
+    //MPU6050_get_imu_data(estData->a, estData->w);
+    //MPU6050_six_point_accel_correction(estData->a);
     ICM20948_get_imu_data(estData->a, estData->w);
 }

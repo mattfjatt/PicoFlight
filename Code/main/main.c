@@ -8,6 +8,7 @@
 #include "headers/MPU6050.h"
 #include "headers/MMC5603.h"
 #include "headers/ICM20948.h"
+#include "headers/ICM45686.h"
 #include "headers/LinAlg.h"
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
@@ -63,7 +64,10 @@ void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
 {
     Bus_spi_init();
     Bus_i2c_init();
+
+    ICM45686_init();
     ICM20948_init();
+
     MMC5603_init();
     MPU6050_init();
     Servo_init();

@@ -12,14 +12,14 @@
 //26 27 used by i2c1
 //2 3 4 5 are free to use for spi0
 
-//SPI 
+//SPI. CS pins are set in relevant modules
 #define SPI_MOSI 3
 #define SPI_MISO 4
 #define SPI_SCK  2
 
-//CS lines
-#define ICM20948_CS 5
-#define ICM45686_CS 6 //This is not tested yet
+#define SET_SPI_READ 0x80
+#define SET_SPI_WRITE 0x0
+
 
 //I2C
 //These pins are used such that the ICM20498 can use pins 2 3 4 5, but this will not work on the drone 
@@ -33,6 +33,5 @@
 void Bus_i2c_init();
 
 void Bus_spi_init();
-
 
 #endif

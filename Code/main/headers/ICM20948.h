@@ -23,6 +23,8 @@ void ICM20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_u
 
 void ICM20948_get_imu_data(double acc[3], double gyr[3]);
 
+#define ICM20948_CS 5
+
 //Register map
 
 #define ICM20948_USER_BANK_0 0
@@ -49,8 +51,6 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3]);
 #define ICM20948_ACCEL_CONFIG_1 0x14
 
 //Bit maps
-#define SET_SPI_READ 0x80
-#define SET_SPI_WRITE 0x0
 
 #define ICM20948_SLEEP 6 //Chip seems to have this bit set, need to clear it at startup
 #define ICM20948_DEVICE_RESET 7

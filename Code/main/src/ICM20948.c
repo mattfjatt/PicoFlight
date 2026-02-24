@@ -1,8 +1,8 @@
 #include "headers/ICM20948.h"
 
 //Default sensitivity values
-double gyro_sensitivity = 131.0;
-double accel_sensitivity = 16384.0;
+static double gyro_sensitivity = 131.0;
+static double accel_sensitivity = 16384.0;
 
 void ICM20948_init()
 {
@@ -12,16 +12,20 @@ void ICM20948_init()
     //CS  : CS
     //SCLK: SCL
 
+    //Max SCLK frequency is 7MHz
+    //Initiate the CS pin
+    gpio_init(ICM20948_CS);
+    gpio_set_dir(ICM20948_CS, GPIO_OUT);
+    gpio_put(ICM20948_CS,1); //CS is set to high, this is the idle state
+
     //Turn off sleep mode
     ICM20948_read_modify_write_register(ICM20948_PWR_MGMT_1, 0, 1 << ICM20948_SLEEP,ICM20948_CS);
 
 
     //Next, set gyro and acc full scale ranges. These registers are in user bank 2:
     ICM20948_set_register_user_bank(ICM20948_USER_BANK_2);
-    ICM20948_set_measurement_ranges(ICM20948_GYRO_FS_500, ICM20948_ACCEL_FS_4G);
+    ICM20948_set_measurement_ranges(ICM20948_GYRO_FS_1000, ICM20948_ACCEL_FS_2G);
     ICM20948_set_register_user_bank(ICM20948_USER_BANK_0); //Always set user bank back to 0, otherwise can't read sensor registers later
-
-    //FIFO-buffer setup
 }
 
 void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
@@ -45,6 +49,7 @@ void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
         break;
     
     default:
+        LOG("Invalid gyro FS\n");
         break;
     }
 
@@ -67,6 +72,7 @@ void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
         break;
 
     default:
+        LOG("Invalid accel FS\n");
         break;
     }
     ICM20948_read_modify_write_register(ICM20948_GYRO_CONFIG_1, gyro_fs << ICM20948_GYRO_FS_SEL, ICM20948_GYRO_FS_BITMASK,ICM20948_CS);
@@ -77,7 +83,7 @@ void ICM20948_set_register_user_bank(uint8_t bank)
 {
     //Register bank 127, 0x7F, in any bank is the bank selection register
     if(bank <= 3){
-        ICM20948_read_modify_write_register(ICM20948_REG_BANK_SEL, bank << 4,0b11 << 4,ICM20948_CS);
+        ICM20948_read_modify_write_register(ICM20948_REG_BANK_SEL, bank << 4, 0b11 << 4,ICM20948_CS);
     }else{
         LOG("Invalid USER BANK selected!\n");
     }
