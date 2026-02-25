@@ -16,10 +16,14 @@ void ICM45686_init()
     uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
-    ICM45686_set_measurement_ranges(ICM45686_GYRO_FS_250,ICM45686_ACCEL_FS_2G);
-    ICM45686_set_odr_frequency(ICM45686_GYRO_ODR_0K8, ICM45686_ACCEL_ODR_6K4);
+    ICM45686_set_measurement_ranges(ICM45686_GYRO_FS_1000,ICM45686_ACCEL_FS_2G);
+    ICM45686_set_odr_frequency(ICM45686_GYRO_ODR_1K6, ICM45686_ACCEL_ODR_1K6);
     ICM45686_set_power_modes(ICM45686_GYRO_LOW_NOISE, ICM45686_ACCEL_LOW_NOISE);
-    ICM45686_access_indirect_register(); //Sets to Big Endian data format 
+    ICM45686_set_data_endianness(); 
+
+    uint8_t read_back_value;
+    ICM45686_read_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, &read_back_value);
+    PRINTNUM("Register value is %u\n", read_back_value);
 
     double acc[3];
     double gyr[3];
@@ -27,8 +31,8 @@ void ICM45686_init()
 
     while(1){
         //PRINTNUM("Val = %u\n", rx_buf[1]);
-        ICM45686_get_imu_data(acc,gyr);
-        LinAlg_printvec(3,gyr);
+        // ICM45686_get_imu_data(acc,gyr);
+        // LinAlg_printvec(3,gyr);
         sleep_ms(50);
     }
 
@@ -151,36 +155,76 @@ void ICM45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode)
     }
 }
 
-void ICM45686_access_indirect_register()
+void ICM45686_set_data_endianness()
 {
-    //Host indirect access register (IREG) can only be addressed using an internal 16 bit address
-    //A minimum wait-time of 4us between read/writes is required.
+    ICM45686_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, 2); //WAHBOOM magic number, and now what?
+}
 
-    //For starters, we want to access register SREG_CTRL in bank IPREG_TOP1. To do this,
-    //add the base address 0xA200 to the 8 bit register address for SREG_CTRL and write the result to
-    //IREG_ADDR_7_0, IREG_ADDR_15_8
+void ICM45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value)
+{
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    if(bank == ICM45686_IMEM_SRAM | bank == ICM45686_IPREG_BAR | bank == ICM45686_IPREG_SYS1 | bank == ICM45686_IPREG_SYS2 | bank == ICM45686_IPREG_TOP1){
+        uint16_t ireg_16bit_add = bank + ireg;
+        uint8_t ireg_7_0  = (uint8_t)(ireg_16bit_add & 0x00FF);
+        uint8_t ireg_15_8 = (uint8_t)(ireg_16bit_add >> 8);
+        tx_buf[1] = ireg_7_0;
+        ICM45686_write_to_register(ICM45686_IREG_ADDR_7_0,tx_buf,rx_buf,2,ICM45686_CS);
+        tx_buf[1] = ireg_15_8;
+        ICM45686_write_to_register(ICM45686_IREG_ADDR_15_8,tx_buf,rx_buf,2,ICM45686_CS);
+        //Read back the data stored in IREG_DATA
+        sleep_ms(1);
+        ICM45686_read_from_register(ICM45686_IREG_DATA, tx_buf,rx_buf,2,ICM45686_CS);
+        *ireg_value = rx_buf[1];
+    }else{
+        LOG("Invalid internal register bank selected\n");
+    }
+} 
+
+void ICM45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value)
+{
     uint8_t tx_buf[4];
     uint8_t rx_buf[4];
+    if(bank == ICM45686_IMEM_SRAM | bank == ICM45686_IPREG_BAR | bank == ICM45686_IPREG_SYS1 | bank == ICM45686_IPREG_SYS2 | bank == ICM45686_IPREG_TOP1){
+        uint16_t ireg_16bit_add = bank + ireg;
+        uint8_t ireg_7_0  = (uint8_t)(ireg_16bit_add & 0x00FF);
+        uint8_t ireg_15_8 = (uint8_t)(ireg_16bit_add >> 8);
+        tx_buf[1] = ireg_15_8;
+        tx_buf[2] = ireg_7_0;
+        tx_buf[3] = ireg_value;
+        ICM45686_write_to_register(ICM45686_IREG_ADDR_15_8,tx_buf,rx_buf,4,ICM45686_CS);
+    }else{
+        LOG("Invalid internal register bank selected\n");
+    }
+    sleep_ms(1);
+}
 
-    uint16_t ipreg_top1_offset = 0xA200;
-    uint16_t sreg_ctrl_16bit = 0x67 + ipreg_top1_offset; //41575
-    uint8_t ireg_7_0 = (uint8_t)(sreg_ctrl_16bit & 0x00FF);
-    uint8_t ireg_15_8 = (uint8_t)(sreg_ctrl_16bit >> 8);
-    uint8_t ireg_value = 0b10;
-    tx_buf[1] = ireg_15_8;
-    tx_buf[2] = ireg_7_0;
-    tx_buf[3] = ireg_value;
+void ICM45686_read_modify_write_indirect_register()
+{
+
+}
+
+void ICM45686_configure_for_external_clock()
+{
+    //Will use INT2 pin for CLKIN, how to configure it for this? Section 7.3 of ICM45686 user guide:
+    //To use pin 9 as CLKIN, the PADS_INT2_CFG_OVRD_VAL must be set to 2 in
+    //----->IOC_PAD_SCENARIO_OVRD, user bank 0
+
+    //Next, to enable the CLKIN function, the RTC_MODE bit must be set to 1 in
+    //----->RTC_CONFIG, user bank 0
     
-    //Set to Big Endian format
-    ICM45686_write_to_register(ICM45686_IREG_ADDR_15_8,tx_buf,rx_buf,4,ICM45686_CS);
+    //I3C STC and CLKIN use the same interpolator but I3C has higher priority. To use CLKIN, I3C_STC_MODE must be set to 0 on
+    //----->SIFS_I3C_STC_CFG, user bank IPREG_TOP1
 
-    //Want to read the data in SREG_CTRL
-    ICM45686_read_modify_write_register(ICM45686_IREG_ADDR_7_0, ireg_7_0, 0xFF, ICM45686_CS);
-    ICM45686_read_modify_write_register(ICM45686_IREG_ADDR_15_8, ireg_15_8, 0xFF, ICM45686_CS);
-    //Now the data is loaded into IREG_DATA and we can read the reg from this location
-    ICM45686_read_from_register(ICM45686_IREG_DATA, tx_buf, rx_buf, 2, ICM45686_CS);
-    PRINTNUM("SREG_CTRL = %u\n", rx_buf[1]);
+    //ACCEL_SRC_CTRL[1:0] and GYRO_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
+    //----->IPREG_SYS2_REG_123, user bank IPREG_SYS2
 
+    //REG_MISC1[3:0]: Selects MCLK source
+    //0000: MCLK source requested by internal logic (default) 
+    //0010: Requests internal relaxation oscillator 
+    //1000: Requests external clock 
+    //Rest: Reserved  
 }
 
 void ICM45686_get_imu_data(double acc[3], double gyr[3])
@@ -204,9 +248,9 @@ void ICM45686_get_imu_data(double acc[3], double gyr[3])
     int16_t ACC_z = (MSB_z << 8) | LSB_z;
 
 
-    acc[0] =   ACC_x/accel_sensitivity;
-    acc[1] =   ACC_y/accel_sensitivity;
-    acc[2] =   ACC_z/accel_sensitivity;
+    acc[0] =   ACC_y/accel_sensitivity;
+    acc[1] =   ACC_x/accel_sensitivity;
+    acc[2] = - ACC_z/accel_sensitivity;
 
     MSB_x = rx_buf[7];
     LSB_x = rx_buf[8];
@@ -219,11 +263,11 @@ void ICM45686_get_imu_data(double acc[3], double gyr[3])
     int16_t GYR_y = (MSB_y << 8) | LSB_y;
     int16_t GYR_z = (MSB_z << 8) | LSB_z;
 
-    double d2r = 1.0;//3.14159265/180;
+    double d2r = 3.14159265/180;
 
-    gyr[0] =   GYR_x/gyro_sensitivity*d2r;
-    gyr[1] =   GYR_y/gyro_sensitivity*d2r;
-    gyr[2] =   GYR_z/gyro_sensitivity*d2r;
+    gyr[0] =   GYR_y/gyro_sensitivity*d2r;
+    gyr[1] =   GYR_x/gyro_sensitivity*d2r;
+    gyr[2] = - GYR_z/gyro_sensitivity*d2r;
 }
 
 void ICM45686_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin)

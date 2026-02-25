@@ -6,6 +6,7 @@
 #include "headers/MPU6050.h"
 #include "headers/MMC5603.h"
 #include "headers/ICM20948.h"
+#include "headers/ICM45686.h"
 #include "headers/Config.h"
 #include "pico/stdlib.h"
 

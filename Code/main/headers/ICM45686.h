@@ -14,6 +14,8 @@ void ICM45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
 
 void ICM45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr);
 
+void ICM45686_configure_external_clock();
+
 void ICM45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode);
 
 void ICM45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
@@ -22,7 +24,14 @@ void ICM45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* 
 
 void ICM45686_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
 
-void ICM45686_access_indirect_register(); //See ICM45686 datasheet section 14 "Indirect register access" for more info
+void ICM45686_set_data_endianness();
+
+void ICM45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value); //See ICM45686 datasheet section 14 "Indirect register access" for more info
+
+void ICM45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value);
+
+void ICM45686_read_modify_write_indirect_register();
+
 
 #define ICM45686_CS 6
 
@@ -114,5 +123,17 @@ void ICM45686_access_indirect_register(); //See ICM45686 datasheet section 14 "I
 #define ICM45686_ACCEL_OFFX      0b01 //Does the same as the previous one
 #define ICM45686_ACCEL_LOW_POWER 0b10
 #define ICM45686_ACCEL_LOW_NOISE 0b11
+
+//Indirect 16-bit-address registers
+
+//BANKS
+#define ICM45686_IMEM_SRAM   0x0000 
+#define ICM45686_IPREG_BAR   0xA000
+#define ICM45686_IPREG_SYS1  0xA400
+#define ICM45686_IPREG_SYS2  0xA500
+#define ICM45686_IPREG_TOP1  0xA200
+
+//IREGS
+#define ICM45686_SREG_CTRL 0x67
 
 #endif

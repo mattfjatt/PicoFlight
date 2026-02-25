@@ -66,9 +66,9 @@ void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
     Bus_i2c_init();
 
     ICM45686_init();
-    ICM20948_init();
+    //ICM20948_init();
 
-    MMC5603_init();
+    //MMC5603_init();
     MPU6050_init();
     Servo_init();
     Receiver_init(recData);

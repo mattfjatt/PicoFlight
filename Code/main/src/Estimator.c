@@ -97,7 +97,7 @@ void Estimator_init(estStruct* estData){
 
     //Find in which direction the magnetic fields point at startup, this will serve as reference heading.
     //To get actual north, a look up table based on location is needed
-    Estimator_find_current_mag_direction(estData);
+    // Estimator_find_current_mag_direction(estData);
 
     //Warm-starting gyro bias
     Estimator_set_initial_gyro_bias(estData);
@@ -105,7 +105,7 @@ void Estimator_init(estStruct* estData){
 
 void Estimator_estimate_R(estStruct* estData,double h){
     Estimator_get_imu_data(estData);
-    MMC5603_get_corrected_mag_reading(estData->m);
+    //MMC5603_get_corrected_mag_reading(estData->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
     int check_magnitude = 1;
@@ -120,7 +120,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     //v2
     if((LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80) && check_magnitude){
         LinAlg_zerovec(estData->N, estData->v2);
-        LOG("Magnitude of mag outside limits\n");
+        //LOG("Magnitude of mag outside limits\n");
     }else{
         LinAlg_normalize(estData->N,estData->m,estData->v2);
     }
@@ -212,14 +212,14 @@ void Estimator_set_initial_gyro_bias(estStruct* estData)
 {
     PRINT("Gathering IMU gyro samples...\n");
     double sum[3];
-    int samples = 100;
+    int samples = 1500;
     LinAlg_zerovec(3, sum);
     for(int i = 0; i < samples; i++){
         Estimator_get_imu_data(estData);
         for(int j = 0; j < 3; j++){
             sum[j] += estData->w[j];
         }
-        sleep_ms(10);
+        sleep_ms(3);
     }
     //Set the initial gyro bias
     for(int j = 0; j < 3; j++){
@@ -230,7 +230,8 @@ void Estimator_set_initial_gyro_bias(estStruct* estData)
 
 void Estimator_get_imu_data(estStruct* estData)
 {
-    //MPU6050_get_imu_data(estData->a, estData->w);
-    //MPU6050_six_point_accel_correction(estData->a);
-    ICM20948_get_imu_data(estData->a, estData->w);
+    // MPU6050_get_imu_data(estData->a, estData->w);
+    // MPU6050_six_point_accel_correction(estData->a);
+    // ICM20948_get_imu_data(estData->a, estData->w);
+    ICM45686_get_imu_data(estData->a, estData->w);
 }
