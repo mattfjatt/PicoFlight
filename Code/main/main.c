@@ -1,6 +1,6 @@
 #include "headers/Config.h"
 #include "headers/Logging.h"
-#include <string.h> //Not sure what this does, but it was included in the mpu6050 example. Maybe the %s formatter
+#include <string.h>
 #include "pico/stdlib.h"
 
 //Custom includes
@@ -64,16 +64,17 @@ void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
 {
     Bus_spi_init();
     Bus_i2c_init();
-
+    sleep_ms(500);
     ICM45686_init();
     //ICM20948_init();
 
     //MMC5603_init();
-    MPU6050_init();
+    //MPU6050_init();
     Servo_init();
     Receiver_init(recData);
     Controller_init(contData);
     Estimator_init(estData);
+    //sleep_ms(500);
 }
 
 void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h)

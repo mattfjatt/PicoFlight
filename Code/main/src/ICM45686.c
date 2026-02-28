@@ -4,6 +4,11 @@
 static double gyro_sensitivity = 8.2;
 static double accel_sensitivity = 1024.0;
 
+static const float CLOCK_DIVIDER = 1.25f;
+static const uint16_t PWM_WRAP_VALUE = 3749;
+static const float F_CPU = 150*1e6; 
+
+
 void ICM45686_init()
 {
     //Max SCLK frequency is 24MHz
@@ -11,29 +16,33 @@ void ICM45686_init()
     gpio_init(ICM45686_CS);
     gpio_set_dir(ICM45686_CS, GPIO_OUT);
     gpio_put(ICM45686_CS,1); //CS is set to high, this is the idle state
-
+    sleep_ms(50);
     //Read the WHO_AM_I register
     uint8_t tx_buf[2];
     uint8_t rx_buf[2];
+    ICM45686_read_from_register(ICM45686_WHO_AM_I,tx_buf,rx_buf,2,ICM45686_CS);
+    PRINTNUM("WHO_AM_I = %u\n", rx_buf[1]);
+
+    ICM45686_set_power_modes(ICM45686_GYRO_OFF, ICM45686_ACCEL_OFF);
+    sleep_ms(50);
+
+    sleep_ms(10);
+    ICM45686_set_rp2350_pwm_signal();
+    ICM45686_set_clock_source();
 
     ICM45686_set_measurement_ranges(ICM45686_GYRO_FS_1000,ICM45686_ACCEL_FS_2G);
     ICM45686_set_odr_frequency(ICM45686_GYRO_ODR_1K6, ICM45686_ACCEL_ODR_1K6);
+    ICM45686_set_data_endianness();
     ICM45686_set_power_modes(ICM45686_GYRO_LOW_NOISE, ICM45686_ACCEL_LOW_NOISE);
-    ICM45686_set_data_endianness(); 
-
-    uint8_t read_back_value;
-    ICM45686_read_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, &read_back_value);
-    PRINTNUM("Register value is %u\n", read_back_value);
 
     double acc[3];
     double gyr[3];
     
 
     while(1){
-        //PRINTNUM("Val = %u\n", rx_buf[1]);
-        // ICM45686_get_imu_data(acc,gyr);
-        // LinAlg_printvec(3,gyr);
-        sleep_ms(50);
+        ICM45686_get_imu_data(acc,gyr);
+        LinAlg_printvec(3,gyr);
+        sleep_ms(20);
     }
 
 }
@@ -157,7 +166,21 @@ void ICM45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode)
 
 void ICM45686_set_data_endianness()
 {
-    ICM45686_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, 2); //WAHBOOM magic number, and now what?
+    ICM45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, 1 << ICM45686_SREG_DATA_ENDIAN_SEL , 1 << ICM45686_SREG_DATA_ENDIAN_SEL);
+}
+
+void ICM45686_set_rp2350_pwm_signal()
+{
+    gpio_set_function(ICM45686_PICO_CLOCK_PIN, GPIO_FUNC_PWM);
+    uint slice = pwm_gpio_to_slice_num(ICM45686_PICO_CLOCK_PIN);
+    pwm_config config = pwm_get_default_config();
+    pwm_config_set_clkdiv(&config, CLOCK_DIVIDER);
+    pwm_config_set_wrap(&config, PWM_WRAP_VALUE);
+    pwm_init(slice, &config, true);
+    pwm_set_enabled(slice, true);
+    pwm_set_chan_level(slice, 1, PWM_WRAP_VALUE/2); //Set to 50% duty
+
+    sleep_ms(200); //Let clock stabilize
 }
 
 void ICM45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value)
@@ -165,7 +188,11 @@ void ICM45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_
     uint8_t tx_buf[2];
     uint8_t rx_buf[2];
 
-    if(bank == ICM45686_IMEM_SRAM | bank == ICM45686_IPREG_BAR | bank == ICM45686_IPREG_SYS1 | bank == ICM45686_IPREG_SYS2 | bank == ICM45686_IPREG_TOP1){
+    if( bank == ICM45686_IMEM_SRAM ||
+        bank == ICM45686_IPREG_BAR ||
+        bank == ICM45686_IPREG_SYS1 ||
+        bank == ICM45686_IPREG_SYS2 ||
+        bank == ICM45686_IPREG_TOP1){
         uint16_t ireg_16bit_add = bank + ireg;
         uint8_t ireg_7_0  = (uint8_t)(ireg_16bit_add & 0x00FF);
         uint8_t ireg_15_8 = (uint8_t)(ireg_16bit_add >> 8);
@@ -186,7 +213,11 @@ void ICM45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
 {
     uint8_t tx_buf[4];
     uint8_t rx_buf[4];
-    if(bank == ICM45686_IMEM_SRAM | bank == ICM45686_IPREG_BAR | bank == ICM45686_IPREG_SYS1 | bank == ICM45686_IPREG_SYS2 | bank == ICM45686_IPREG_TOP1){
+    if( bank == ICM45686_IMEM_SRAM ||
+        bank == ICM45686_IPREG_BAR ||
+        bank == ICM45686_IPREG_SYS1 ||
+        bank == ICM45686_IPREG_SYS2 ||
+        bank == ICM45686_IPREG_TOP1){
         uint16_t ireg_16bit_add = bank + ireg;
         uint8_t ireg_7_0  = (uint8_t)(ireg_16bit_add & 0x00FF);
         uint8_t ireg_15_8 = (uint8_t)(ireg_16bit_add >> 8);
@@ -200,31 +231,62 @@ void ICM45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
     sleep_ms(1);
 }
 
-void ICM45686_read_modify_write_indirect_register()
+void ICM45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask)
 {
-
+    uint8_t value_from_reg;
+    uint8_t value_to_reg;
+    ICM45686_read_indirect_register(bank, ireg, &value_from_reg);
+    value_to_reg = value_from_reg & ~mask;
+    value_to_reg |= (ireg_value & mask);
+    ICM45686_write_indirect_register(bank, ireg, value_to_reg);
 }
 
-void ICM45686_configure_for_external_clock()
+void ICM45686_set_clock_source()
 {
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
     //Will use INT2 pin for CLKIN, how to configure it for this? Section 7.3 of ICM45686 user guide:
     //To use pin 9 as CLKIN, the PADS_INT2_CFG_OVRD_VAL must be set to 2 in
     //----->IOC_PAD_SCENARIO_OVRD, user bank 0
+    //Must first set the OVRD bit, else it appears the VAL can not be written to
+    ICM45686_read_modify_write_register(ICM45686_IOC_PAD_SCENARIO_OVRD,
+                                        ICM45686_PADS_INT2_CFG_OVRD,
+                                        ICM45686_PADS_INT2_CFG_OVRD_MASK,
+                                        ICM45686_CS);
+
+    ICM45686_read_modify_write_register(ICM45686_IOC_PAD_SCENARIO_OVRD,
+                                        ICM45686_PADS_INT2_CFG_OVRD_VAL,
+                                        ICM45686_PADS_INT2_CFG_OVRD_VAL_MASK,
+                                        ICM45686_CS);
 
     //Next, to enable the CLKIN function, the RTC_MODE bit must be set to 1 in
     //----->RTC_CONFIG, user bank 0
+    ICM45686_read_modify_write_register(ICM45686_RTC_CONFIG,
+                                        ICM45686_RTC_MODE,
+                                        ICM45686_RTC_MODE_MASK,
+                                        ICM45686_CS);
     
     //I3C STC and CLKIN use the same interpolator but I3C has higher priority. To use CLKIN, I3C_STC_MODE must be set to 0 on
     //----->SIFS_I3C_STC_CFG, user bank IPREG_TOP1
+    ICM45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1,
+                                                 ICM45686_SIFS_I3C_STC_CFG,
+                                                 ICM45686_I3C_STC_MODE,
+                                                 ICM45686_I3C_STC_MODE_MASK);
 
-    //ACCEL_SRC_CTRL[1:0] and GYRO_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
+    //ACCEL_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
     //----->IPREG_SYS2_REG_123, user bank IPREG_SYS2
+    ICM45686_read_modify_write_indirect_register(ICM45686_IPREG_SYS2,
+                                                 ICM45686_IPREG_SYS2_REG_123,
+                                                 ICM45686_ACCEL_SRC_CTRL,
+                                                 ICM45686_ACCEL_SRC_CTRL_MASK);
 
-    //REG_MISC1[3:0]: Selects MCLK source
-    //0000: MCLK source requested by internal logic (default) 
-    //0010: Requests internal relaxation oscillator 
-    //1000: Requests external clock 
-    //Rest: Reserved  
+    //GYRO_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
+    //----->IPREG_SYS1_REG_166, user bank IPREG_SYS1
+    ICM45686_read_modify_write_indirect_register(ICM45686_IPREG_SYS1,
+                                                 ICM45686_IPREG_SYS1_REG_166,
+                                                 ICM45686_GYRO_SRC_CTRL,
+                                                 ICM45686_GYRO_SRC_CTRL_MASK);
 }
 
 void ICM45686_get_imu_data(double acc[3], double gyr[3])

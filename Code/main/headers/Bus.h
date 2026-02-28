@@ -10,7 +10,9 @@
 //18 19 20 21 used by servo
 //8 9 used by i2c0
 //26 27 used by i2c1
-//2 3 4 5 are free to use for spi0
+//2 3 4 are free to use for spi0
+//5 6 used for CS for ICM20948 and ICM45686, respectively
+//7 used for pwm clock for ICM45686
 
 //SPI. CS pins are set in relevant modules
 #define SPI_MOSI 3
