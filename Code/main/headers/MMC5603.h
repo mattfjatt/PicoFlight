@@ -2,6 +2,7 @@
 #define MMC5603_H
 
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "headers/Bus.h"
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"

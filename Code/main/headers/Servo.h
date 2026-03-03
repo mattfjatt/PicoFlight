@@ -1,7 +1,9 @@
 #ifndef SERVO_H
 #define SERVO_H
+
 #include "pico/stdlib.h"
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "hardware/pwm.h"
 
 typedef enum {

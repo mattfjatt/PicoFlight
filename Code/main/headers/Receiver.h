@@ -1,6 +1,8 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
+
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "pico/stdlib.h"
 #include "hardware/irq.h"
 

@@ -5,6 +5,7 @@
 //The ICM20948 has four register banks, you can select which bank to use by writing to register address 127, REG_BANK_SEL, in each bank to select bank.
 
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "headers/LinAlg.h"
 #include "pico/binary_info.h"
 #include "headers/Bus.h"

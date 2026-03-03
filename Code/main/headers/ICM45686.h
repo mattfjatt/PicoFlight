@@ -2,6 +2,7 @@
 #define ICM45686_H
 
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "headers/Bus.h"
 #include "headers/LinAlg.h"
 #include "hardware/pwm.h"

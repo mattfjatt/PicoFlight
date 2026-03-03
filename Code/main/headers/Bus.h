@@ -2,6 +2,7 @@
 #define BUS_H
 
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "hardware/spi.h"
 #include "hardware/i2c.h"
 #include "pico/binary_info.h"

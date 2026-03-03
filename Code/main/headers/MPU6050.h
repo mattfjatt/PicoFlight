@@ -2,6 +2,7 @@
 #define MPU6050_H
 
 #include "headers/Logging.h"
+#include "headers/Pins.h"
 #include "headers/Config.h"
 #include "pico/stdlib.h"
 #include "headers/Logging.h"
