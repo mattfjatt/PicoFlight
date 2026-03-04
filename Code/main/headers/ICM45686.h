@@ -1,40 +1,40 @@
 #ifndef ICM45686_H
 #define ICM45686_H
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
-#include "headers/Bus.h"
-#include "headers/LinAlg.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
+#include "headers/bus.h"
+#include "headers/linalg.h"
 #include "hardware/pwm.h"
 //This is the IMU that will be used later
 
-void ICM45686_init();
+void icm45686_init();
 
-void ICM45686_get_imu_data(double acc[3], double gyr[3]);
+void icm45686_get_imu_data(double acc[3], double gyr[3]);
 
-void ICM45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
+void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
 
-void ICM45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr);
+void icm45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr);
 
-void ICM45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode);
+void icm45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode);
 
-void ICM45686_set_data_endianness();
+void icm45686_set_data_endianness();
 
-void ICM45686_set_clock_source();
+void icm45686_set_clock_source();
 
-void ICM45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
+void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
-void ICM45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
+void icm45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
-void ICM45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
+void icm45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
-void ICM45686_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
+void icm45686_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
 
-void ICM45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value); //See ICM45686 datasheet section 14 "Indirect register access" for more info
+void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value); //See ICM45686 datasheet section 14 "Indirect register access" for more info
 
-void ICM45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value);
+void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value);
 
-void ICM45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
+void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
 
 #define ICM45686_CS 6
 #define ICM45686_PICO_CLOCK_PIN 7

@@ -1,31 +1,31 @@
-#include "headers/Config.h"
-#include "headers/Logging.h"
+#include "headers/config.h"
+#include "headers/logging.h"
 #include <string.h>
 #include "pico/stdlib.h"
 
 //Custom includes
-#include "headers/Bus.h"
-#include "headers/MPU6050.h"
-#include "headers/MMC5603.h"
-#include "headers/ICM20948.h"
-#include "headers/ICM45686.h"
-#include "headers/LinAlg.h"
-#include "headers/Estimator.h"
-#include "headers/Receiver.h"
-#include "headers/Servo.h"
-#include "headers/Controller.h"
-#include "headers/Optimizer.h"
+#include "headers/bus.h"
+#include "headers/mpu6050.h"
+#include "headers/mmc5603.h"
+#include "headers/icm20948.h"
+#include "headers/icm45686.h"
+#include "headers/linalg.h"
+#include "headers/estimator.h"
+#include "headers/receiver.h"
+#include "headers/servo.h"
+#include "headers/controller.h"
+#include "headers/optimizer.h"
 
-void Main_init(contStruct* contData, recStruct* recData, estStruct* estData);
+void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data);
 
-void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h);
+void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h);
 
 
 int main()
 {
     stdio_init_all();
     sleep_ms(7000);
-    Main_init(&controllerData, &receiverData, &estimatorData);
+    Main_init(&controller_data, &receiver_data, &estimator_data);
     
     int N = 3;
     double eul[3];
@@ -34,9 +34,9 @@ int main()
     double empty[3];
     double various_data[3];
     double a_f[3];
-    LinAlg_zerovec(N,empty);
-    LinAlg_zerovec(N,empty);
-    LinAlg_zerovec(N,various_data);
+    linalg_zerovec(N,empty);
+    linalg_zerovec(N,empty);
+    linalg_zerovec(N,various_data);
     double h = 0.0005;
     double mat[3][3];
     sleep_ms(1000);
@@ -44,15 +44,15 @@ int main()
     while (true)
     {
         uint64_t start = time_us_64();
-        Main_run(&controllerData, &receiverData, &estimatorData, h);
+        Main_run(&controller_data, &receiver_data, &estimator_data, h);
         
-        Estimator_R_to_euler(estimatorData.R_hat, eul);
-        LinAlg_vecscalmult(N,eul, eul, 180.0/PI);
-        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.0/PI);
-        LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.0/PI);
-        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.0/3.141590);
-        LinAlg_colvecs2mat3x3(mat,eul,bias,wRaw);
-        LinAlg_printmat(N,N,mat);
+        estimator_rot_mat_to_euler(estimator_data.rot_mat_hat, eul);
+        linalg_vecscalmult(N,eul, eul, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.w, wRaw, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/3.141590);
+        linalg_colvecs2mat3x3(mat,eul,bias,wRaw);
+        linalg_printmat(N,N,mat);
 
         
         sleep_ms(10);
@@ -60,27 +60,27 @@ int main()
     }
 }
 
-void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
+void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 {
-    Bus_spi_init();
-    Bus_i2c_init();
+    bus_spi_init();
+    bus_i2c_init();
     sleep_ms(500);
-    ICM45686_init();
-    //ICM20948_init();
+    icm45686_init();
+    //icm20948_init();
 
-    //MMC5603_init();
+    //mmc5603_init();
     //MPU6050_init();
-    Servo_init();
-    Receiver_init(recData);
-    Controller_init(contData);
-    Estimator_init(estData);
+    servo_init();
+    receiver_init(rec_data);
+    controller_init(cont_data);
+    estimator_init(est_data);
     //sleep_ms(500);
 }
 
-void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, double h)
+void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h)
 {
-    Estimator_estimate_R(estData, h);
-    Controller_run_quadcopter(contData, recData, estData, h);
+    estimator_estimate_attitude(est_data, h);
+    controller_run_quadcopter(cont_data, rec_data, est_data, h);
 }
 
 

@@ -1,21 +1,21 @@
 #ifndef ESTIMATOR_H
 #define ESTIMATOR_H
 
-#include "headers/Logging.h"
-#include "headers/LinAlg.h"
-#include "headers/MPU6050.h"
-#include "headers/MMC5603.h"
-#include "headers/ICM20948.h"
-#include "headers/ICM45686.h"
-#include "headers/Config.h"
+#include "headers/logging.h"
+#include "headers/linalg.h"
+#include "headers/mpu6050.h"
+#include "headers/mmc5603.h"
+#include "headers/icm20948.h"
+#include "headers/icm45686.h"
+#include "headers/config.h"
 #include "pico/stdlib.h"
 
 
 typedef struct{
-    int N;
+    int n;
     //Estimates of orientation and bias and w:
-    double R_hat[3][3];
-    double R_hat_T[3][3];
+    double rot_mat_hat[3][3];
+    double rot_mat_hat_transposed[3][3];
     double b_hat[3];
     double w_hat[3];
     double w_hat_f[3]; //Filtered w_hat
@@ -39,47 +39,47 @@ typedef struct{
     double u1[3];
 
     //Matrices to store skew-symmetric outputs:
-    double w_hat_X[3][3];
-    double Kpe_c[3];
-    double Kpe_c_X[3][3];
+    double w_hat_x[3][3];
+    double kpe_c[3];
+    double kpe_c_x[3][3];
 
     //Correction term from reference vectors:
     double c[3];
 
     //Terms used to find dR:
-    double S[3][3];
-    double Sh[3][3]; 
-    double dR[3][3];
+    double skew_mat[3][3];
+    double skew_mat_h[3][3]; 
+    double d_rot_mat_hat[3][3];
 
     //Estimator gains:
-    double Kpe[3][3];
-    double Kie[3][3];
+    double kp_e[3][3];
+    double ki_e[3][3];
     double k1, k2;
 
     //IMU gyro LP filter time constant
-    double Lambda;
+    double lambda;
 }estStruct;
 
-extern estStruct estimatorData;
+extern estStruct estimator_data;
 
-void Estimator_R_to_euler(double R[][3], double T[3]); //R: input matrix, T: vector of euler angles: T =[phi, theta, psi]
+void estimator_rot_mat_to_euler(double rot_mat[][3], double euler[3]); //R: input matrix, T: vector of euler angles: T =[phi, theta, psi]
 
-void Estimator_euler_to_R(double T[3], double R[][3]); //T input euler angles, R: Output matrix
+void estimator_euler_to_rot_mat(double euler[3], double rot_mat[][3]); //T input euler angles, R: Output matrix
 
-void Estimator_R_next(double R[][3],double w[3], double h); //Update R
+void estimator_rot_mat_next(double rot_mat[][3],double w[3], double h); //Update R
 
-void Estimator_vecLP(int N, double y[N], double x[N], double k); //AR1-low pass filter for an Nx1 vector
+void estimator_vec_low_pass(int n, double y[n], double x[n], double k); //AR1-low pass filter for an Nx1 vector
 
-void Estimator_scalLP(double* y, double* x, double k); //Low pass filter for a scalar
+void estimator_scal_low_pass(double* y, double* x, double k); //Low pass filter for a scalar
 
-void Estimator_init(estStruct* estData);
+void estimator_init(estStruct* est_data);
 
-void Estimator_estimate_R(estStruct* estData, double h);
+void estimator_estimate_attitude(estStruct* est_data, double h);
 
-void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
+void estimator_find_current_mag_direction(estStruct* est_data); //Find the local direction of the magnetic field
 
-void Estimator_set_initial_gyro_bias(estStruct* estData);
+void estimator_set_initial_gyro_bias(estStruct* est_data);
 
-void Estimator_get_imu_data(estStruct* estData);
+void estimator_get_imu_data(estStruct* est_data);
 
 #endif

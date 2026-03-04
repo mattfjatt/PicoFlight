@@ -1,4 +1,4 @@
-#include "headers/Config.h"
+#include "headers/config.h"
 
 #ifdef LOGGING
     #include "stdio.h"

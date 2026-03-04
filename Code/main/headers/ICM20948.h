@@ -4,25 +4,25 @@
 //The breakoutboard from Adafruit has the IMU axes printed on the board, however, they are wrong. Consult the datasheet for the ICM20948 instead. Yes, same problem as with the MMC5603.
 //The ICM20948 has four register banks, you can select which bank to use by writing to register address 127, REG_BANK_SEL, in each bank to select bank.
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
-#include "headers/LinAlg.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
+#include "headers/linalg.h"
 #include "pico/binary_info.h"
-#include "headers/Bus.h"
+#include "headers/bus.h"
 
-void ICM20948_init();
+void icm20948_init();
 
-void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
+void icm20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
 
-void ICM20948_set_register_user_bank(uint8_t bank);
+void icm20948_set_register_user_bank(uint8_t bank);
 
-void ICM20948_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
+void icm20948_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
-void ICM20948_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
+void icm20948_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
-void ICM20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
+void icm20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
 
-void ICM20948_get_imu_data(double acc[3], double gyr[3]);
+void icm20948_get_imu_data(double acc[3], double gyr[3]);
 
 #define ICM20948_CS 5
 

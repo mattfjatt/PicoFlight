@@ -1,8 +1,8 @@
 #ifndef BUS_H
 #define BUS_H
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
 #include "hardware/spi.h"
 #include "hardware/i2c.h"
 #include "pico/binary_info.h"
@@ -33,8 +33,8 @@
 #define I2C1_SDA 26
 #define I2C1_SCL 27
 
-void Bus_i2c_init();
+void bus_i2c_init();
 
-void Bus_spi_init();
+void bus_spi_init();
 
 #endif

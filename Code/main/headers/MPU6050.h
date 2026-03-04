@@ -1,14 +1,14 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
-#include "headers/Config.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
+#include "headers/config.h"
 #include "pico/stdlib.h"
-#include "headers/Logging.h"
-#include "headers/Bus.h"
+#include "headers/logging.h"
+#include "headers/bus.h"
 #include "pico/binary_info.h"
-#include "headers/LinAlg.h"
+#include "headers/linalg.h"
 
 //Registers
 #define MPU6050_I2C_ADDRESS 0x68
@@ -27,18 +27,18 @@
 static uint8_t read_buffer[1]; // Buffer for read operation
 static uint8_t write_buffer[2]; //Buffer holding some address and a data byte
 
-void MPU6050_init();
+void mpu6050_init();
 
-void MPU6050_reset();
+void mpu6050_reset();
 
-void MPU6050_setup();
+void mpu6050_setup();
 
-void MPU6050_get_imu_data(double acc[3], double gyr[3]);
+void mpu6050_get_imu_data(double acc[3], double gyr[3]);
 
-void MPU6050_six_point_accel_correction(double acc[3]); //This is a rough calibration that can be applied to the accelerometer data
+void mpu6050_six_point_accel_correction(double acc[3]); //This is a rough calibration that can be applied to the accelerometer data
 
-void MPU6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg);
+void mpu6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg);
 
-void MPU6050_print_binary(uint32_t num);
+void mpu6050_print_binary(uint32_t num);
 
 #endif

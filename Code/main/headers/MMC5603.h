@@ -1,13 +1,13 @@
 #ifndef MMC5603_H
 #define MMC5603_H
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
-#include "headers/Bus.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
+#include "headers/bus.h"
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
-#include "headers/LinAlg.h"
-#include "headers/Optimizer.h"
+#include "headers/linalg.h"
+#include "headers/optimizer.h"
 //This is the magnetometer that will be used. It has a two modes for reading data:
 //1: Single-Shot mode: You tell the sensor over i2c to take store a measurement, then a bit will be set to 1 in status 1 when the reading is done.
 //2: Continuous mode: As the name implies, you don't need to tell the sensor to take a measurement, it will always store the newest. 
@@ -66,23 +66,23 @@
 #define MMC5603_BW0 0
 #define MMC5603_BW1 1
 
-void MMC5603_init();
+void mmc5603_init();
 
-void MMC5603_setup();
+void mmc5603_setup();
 
-void MMC5603_read_temp();
+void mmc5603_read_temp();
 
-void MMC5603_gather_samples_for_calib();
+void mmc5603_gather_samples_for_calib();
 
-void MMC5603_calibrate_magnetometer();
+void mmc5603_calibrate_magnetometer();
 
-void MMC5603_get_mag_reading(Sample* si);
+void mmc5603_get_mag_reading(Sample* si);
 
-void MMC5603_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]);
+void mmc5603_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]);
 
-void MMC5603_adjust_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]);
+void mmc5603_adjust_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]);
 
-void MMC5603_get_corrected_mag_reading(double m_corr[3]);
+void mmc5603_get_corrected_mag_reading(double m_corr[3]);
 
 void i2c_read_register(i2c_inst_t* i2c, uint8_t dev_address, uint8_t reg_address, uint8_t* read_buffer, uint8_t len);
 

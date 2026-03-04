@@ -1,173 +1,174 @@
-#include "headers/Estimator.h"
+#include "headers/estimator.h"
 
-estStruct estimatorData;
+estStruct estimator_data;
 
-void Estimator_R_to_euler(double R[][3], double T[3]){
-    int N = 3;
-    LinAlg_zerovec(N,T);
-    T[0] = -atan2(R[1][2],R[2][2]);
-    T[1] =  asin(R[0][2]);
-    T[2] = -atan2(R[0][1],R[0][0]);
+void estimator_rot_mat_to_euler(double rot_mat[][3], double euler[3]){
+    int n = 3;
+    linalg_zerovec(n,euler);
+    euler[0] = -atan2(rot_mat[1][2],rot_mat[2][2]);
+    euler[1] =  asin(rot_mat[0][2]);
+    euler[2] = -atan2(rot_mat[0][1],rot_mat[0][0]);
 }
 
-void Estimator_euler_to_R(double T[3], double R[][3]){
-    int N = 3;
-    double Rx[3][3];
-    double Ry[3][3];
-    double Rz[3][3];
-    LinAlg_rotX(T[0],Rx);
-    LinAlg_rotY(T[1],Ry);
-    LinAlg_rotZ(T[2],Rz);
-    LinAlg_matmatmul_small(N,N,Rx,Ry,R);
-    LinAlg_matmatmul_small(N,N,R,Rz,R);
+void estimator_euler_to_rot_mat(double euler[3], double rot_mat[][3]){
+    int n = 3;
+    double rot_x[3][3];
+    double rot_y[3][3];
+    double rot_z[3][3];
+    linalg_zeromat(n,n,rot_mat);
+    linalg_rotX(euler[0],rot_x);
+    linalg_rotY(euler[1],rot_y);
+    linalg_rotZ(euler[2],rot_z);
+    linalg_matmatmul_small(n,n,rot_x,rot_y,rot_mat);
+    linalg_matmatmul_small(n,n,rot_mat,rot_z,rot_mat);
 }
 
-void Estimator_R_next(double R[][3],double w[3],double h){
-    int N = 3;
+void estimator_rot_mat_next(double rot_mat[][3],double w[3],double h){
+    int n = 3;
     double hwx[3][3];
-    double dR[3][3];
-    LinAlg_zeromat(N,N,dR);
-    LinAlg_vec2skew3x3(w,hwx);
-    LinAlg_matscalmult(N,N,hwx,h,hwx);
-    LinAlg_expm3x3(hwx,dR,9);
-    LinAlg_matmatmul_small(N,N,R,dR,R);
+    double d_rot_mat[3][3];
+    linalg_zeromat(n,n,d_rot_mat);
+    linalg_vec2skew3x3(w,hwx);
+    linalg_matscalmult(n,n,hwx,h,hwx);
+    linalg_expm3x3(hwx,d_rot_mat,9);
+    linalg_matmatmul_small(n,n,rot_mat,d_rot_mat,rot_mat);
 }
 
-void Estimator_vecLP(int N, double y[N], double x[N], double k){
-    for(int i = 0; i < N; i++){
+void estimator_vec_low_pass(int n, double y[n], double x[n], double k){
+    for(int i = 0; i < n; i++){
         y[i] = (1-k)*y[i] + k*x[i]; 
     }
 }
 
-void Estimator_scalLP(double* y, double* x, double k){
+void estimator_scal_low_pass(double* y, double* x, double k){
     *y = (1-k)*(*y) + k*(*x); 
 }
 
-void Estimator_init(estStruct* estData){
-    estData->N = 3;
-    LinAlg_eye(estData->N,estData->R_hat);
-    LinAlg_eye(estData->N,estData->R_hat_T);
-    LinAlg_eye(estData->N,estData->Kie);
-    LinAlg_zeromat(estData->N,estData->N,estData->v1_x);
-    LinAlg_zeromat(estData->N,estData->N,estData->v2_x);
-    LinAlg_zeromat(estData->N,estData->N,estData->dR);
-    LinAlg_zeromat(estData->N,estData->N,estData->Kpe);
-    LinAlg_zeromat(estData->N,estData->N,estData->w_hat_X);
-    LinAlg_zeromat(estData->N,estData->N,estData->Kpe_c_X);
-    LinAlg_zerovec(estData->N,estData->b_hat);
-    LinAlg_zerovec(estData->N,estData->w_hat);
-    LinAlg_zerovec(estData->N,estData->c);
-    LinAlg_zerovec(estData->N,estData->b_hat_dot);
-    LinAlg_zerovec(estData->N,estData->db_hat);
-    LinAlg_zeromat(estData->N,estData->N,estData->S);
-    LinAlg_zeromat(estData->N,estData->N,estData->Sh);
-    LinAlg_zerovec(estData->N,estData->v1);
-    LinAlg_zerovec(estData->N,estData->v2);
-    LinAlg_zerovec(estData->N,estData->v1_hat);
-    LinAlg_zerovec(estData->N,estData->v2_hat);
-    LinAlg_zerovec(estData->N,estData->v1_x_v1_hat);
-    LinAlg_zerovec(estData->N,estData->v2_x_v2_hat);
-    LinAlg_zerovec(estData->N,estData->Kpe_c);
-    LinAlg_zerovec(estData->N,estData->w);
-    LinAlg_zerovec(estData->N,estData->a);
-    LinAlg_zerovec(estData->N,estData->m);
-    LinAlg_zerovec(estData->N,estData->w_hat_f);
+void estimator_init(estStruct* est_data){
+    est_data->n = 3;
+    linalg_eye(est_data->n,est_data->rot_mat_hat);
+    linalg_eye(est_data->n,est_data->rot_mat_hat_transposed);
+    linalg_eye(est_data->n,est_data->ki_e);
+    linalg_zeromat(est_data->n,est_data->n,est_data->v1_x);
+    linalg_zeromat(est_data->n,est_data->n,est_data->v2_x);
+    linalg_zeromat(est_data->n,est_data->n,est_data->d_rot_mat_hat);
+    linalg_zeromat(est_data->n,est_data->n,est_data->kp_e);
+    linalg_zeromat(est_data->n,est_data->n,est_data->w_hat_x);
+    linalg_zeromat(est_data->n,est_data->n,est_data->kpe_c_x);
+    linalg_zerovec(est_data->n,est_data->b_hat);
+    linalg_zerovec(est_data->n,est_data->w_hat);
+    linalg_zerovec(est_data->n,est_data->c);
+    linalg_zerovec(est_data->n,est_data->b_hat_dot);
+    linalg_zerovec(est_data->n,est_data->db_hat);
+    linalg_zeromat(est_data->n,est_data->n,est_data->skew_mat);
+    linalg_zeromat(est_data->n,est_data->n,est_data->skew_mat_h);
+    linalg_zerovec(est_data->n,est_data->v1);
+    linalg_zerovec(est_data->n,est_data->v2);
+    linalg_zerovec(est_data->n,est_data->v1_hat);
+    linalg_zerovec(est_data->n,est_data->v2_hat);
+    linalg_zerovec(est_data->n,est_data->v1_x_v1_hat);
+    linalg_zerovec(est_data->n,est_data->v2_x_v2_hat);
+    linalg_zerovec(est_data->n,est_data->kpe_c);
+    linalg_zerovec(est_data->n,est_data->w);
+    linalg_zerovec(est_data->n,est_data->a);
+    linalg_zerovec(est_data->n,est_data->m);
+    linalg_zerovec(est_data->n,est_data->w_hat_f);
 
-    estData->k1 = 1.0; //For accelerometer
-    estData->k2 = 1.0; //For magnetometer
+    est_data->k1 = 1.0; //For accelerometer
+    est_data->k2 = 1.0; //For magnetometer
 
     //Correction term for bias estimation/integral term(they are supposed to be negative, check the paper):
-    estData->Kie[0][0] = - KiXe;
-    estData->Kie[1][1] = - KiYe;
-    estData->Kie[2][2] = - KiZe;
+    est_data->ki_e[0][0] = - ki_xe;
+    est_data->ki_e[1][1] = - ki_ye;
+    est_data->ki_e[2][2] = - ki_ze;
     //Complementary part/proportional term:
-    estData->Kpe[0][0] = KpXe;
-    estData->Kpe[1][1] = KpYe;
-    estData->Kpe[2][2] = KpZe;
+    est_data->kp_e[0][0] = kp_xe;
+    est_data->kp_e[1][1] = kp_ye;
+    est_data->kp_e[2][2] = kp_ze;
 
     double ident[3][3];
-    LinAlg_eye(estData->N,ident);
-    LinAlg_mat2colvecs3x3(ident, estData->i1, estData->i2, estData->i3);
-    LinAlg_matscalmult(estData->N,estData->N,ident, -1.0, ident);
-    LinAlg_mat2colvecs3x3(ident, estData->ni1, estData->ni2, estData->ni3);
-    LinAlg_zerovec(estData->N,estData->u1);
+    linalg_eye(est_data->n,ident);
+    linalg_mat2colvecs3x3(ident, est_data->i1, est_data->i2, est_data->i3);
+    linalg_matscalmult(est_data->n,est_data->n,ident, -1.0, ident);
+    linalg_mat2colvecs3x3(ident, est_data->ni1, est_data->ni2, est_data->ni3);
+    linalg_zerovec(est_data->n,est_data->u1);
 
     //IMU gyro LP filter time constant
-    estData->Lambda = Lambda;
+    est_data->lambda = lambda;
 
     //Find in which direction the magnetic fields point at startup, this will serve as reference heading.
     //To get actual north, a look up table based on location is needed
-    // Estimator_find_current_mag_direction(estData);
+    //estimator_find_current_mag_direction(est_data);
 
     //Warm-starting gyro bias
-    Estimator_set_initial_gyro_bias(estData);
+    estimator_set_initial_gyro_bias(est_data);
 };
 
-void Estimator_estimate_R(estStruct* estData,double h){
-    Estimator_get_imu_data(estData);
-    //MMC5603_get_corrected_mag_reading(estData->m);
+void estimator_estimate_attitude(estStruct* est_data,double h){
+    estimator_get_imu_data(est_data);
+    //mmc5603_get_corrected_mag_reading(est_data->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
     int check_magnitude = 1;
     //v1:
-    if((LinAlg_vecnorm(estData->N, estData->a) > 1.15 || LinAlg_vecnorm(estData->N, estData->a) < 0.85) && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
-        LinAlg_zerovec(estData->N, estData->v1);
+    if((linalg_vecnorm(est_data->n, est_data->a) > 1.15 || linalg_vecnorm(est_data->n, est_data->a) < 0.85) && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
+        linalg_zerovec(est_data->n, est_data->v1);
         LOG("Magnitude of accel outside limits\n");
     }else{
-        LinAlg_normalize(estData->N,estData->a,estData->v1);
+        linalg_normalize(est_data->n,est_data->a,est_data->v1);
     }
 
     //v2
-    if((LinAlg_vecnorm(estData->N, estData->m) > 1.20 || LinAlg_vecnorm(estData->N, estData->m) < 0.80) && check_magnitude){
-        LinAlg_zerovec(estData->N, estData->v2);
+    if((linalg_vecnorm(est_data->n, est_data->m) > 1.20 || linalg_vecnorm(est_data->n, est_data->m) < 0.80) && check_magnitude){
+        linalg_zerovec(est_data->n, est_data->v2);
         //LOG("Magnitude of mag outside limits\n");
     }else{
-        LinAlg_normalize(estData->N,estData->m,estData->v2);
+        linalg_normalize(est_data->n,est_data->m,est_data->v2);
     }
     
     
-    LinAlg_mattranspose(estData->N,estData->N,estData->R_hat, estData->R_hat_T);
+    linalg_mattranspose(est_data->n,est_data->n,est_data->rot_mat_hat, est_data->rot_mat_hat_transposed);
     //Create v1_hat
-    LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->ni3, estData->v1_hat);
+    linalg_matvecmul(est_data->n,est_data->n,est_data->rot_mat_hat_transposed, est_data->ni3, est_data->v1_hat);
     //Create v2_hat
-    LinAlg_matvecmul(estData->N,estData->N,estData->R_hat_T, estData->u1, estData->v2_hat);
+    linalg_matvecmul(est_data->n,est_data->n,est_data->rot_mat_hat_transposed, est_data->u1, est_data->v2_hat);
 
     //Make the skew-symmetric matrices
-    LinAlg_vec2skew3x3(estData->v1, estData->v1_x);
-    LinAlg_vec2skew3x3(estData->v2, estData->v2_x);
+    linalg_vec2skew3x3(est_data->v1, est_data->v1_x);
+    linalg_vec2skew3x3(est_data->v2, est_data->v2_x);
 
 
     //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
-    LinAlg_matscalmult(estData->N,estData->N,estData->v1_x, estData->k1, estData->v1_x);
-    LinAlg_matscalmult(estData->N,estData->N,estData->v2_x, estData->k2, estData->v2_x);
-    LinAlg_matvecmul(estData->N,estData->N,estData->v1_x, estData->v1_hat, estData->v1_x_v1_hat);
-    LinAlg_matvecmul(estData->N,estData->N,estData->v2_x, estData->v2_hat, estData->v2_x_v2_hat);
-    LinAlg_vecvecadd(estData->N,estData->v1_x_v1_hat, estData->v2_x_v2_hat, estData->c);
+    linalg_matscalmult(est_data->n,est_data->n,est_data->v1_x, est_data->k1, est_data->v1_x);
+    linalg_matscalmult(est_data->n,est_data->n,est_data->v2_x, est_data->k2, est_data->v2_x);
+    linalg_matvecmul(est_data->n,est_data->n,est_data->v1_x, est_data->v1_hat, est_data->v1_x_v1_hat);
+    linalg_matvecmul(est_data->n,est_data->n,est_data->v2_x, est_data->v2_hat, est_data->v2_x_v2_hat);
+    linalg_vecvecadd(est_data->n,est_data->v1_x_v1_hat, est_data->v2_x_v2_hat, est_data->c);
     
 
-    LinAlg_matvecmul(estData->N,estData->N,estData->Kie, estData->c, estData->b_hat_dot); //b_hat_dot = Kie*c
-    LinAlg_vecscalmult(estData->N,estData->b_hat_dot, estData->db_hat, h); //db_hat <- b_hat_dot*h
-    LinAlg_vecvecadd(estData->N,estData->b_hat, estData->db_hat, estData->b_hat);
-    //LinAlg_printvec(estData->w_hat);
+    linalg_matvecmul(est_data->n,est_data->n,est_data->ki_e, est_data->c, est_data->b_hat_dot); //b_hat_dot = Kie*c
+    linalg_vecscalmult(est_data->n,est_data->b_hat_dot, est_data->db_hat, h); //db_hat <- b_hat_dot*h
+    linalg_vecvecadd(est_data->n,est_data->b_hat, est_data->db_hat, est_data->b_hat);
+    //linalg_printvec(est_data->w_hat);
 
     //Correction term in R_hat_dot:
-    LinAlg_matvecmul(estData->N,estData->N,estData->Kpe, estData->c, estData->Kpe_c);
-    LinAlg_vec2skew3x3(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
-    LinAlg_vecvecsub(estData->N,estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
-    //LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
-    LinAlg_vec2skew3x3(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
-    LinAlg_matmatadd(estData->N,estData->N,estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
-    LinAlg_matscalmult(estData->N,estData->N,estData->S,h,estData->Sh); // Sh = S*h
-    LinAlg_expm3x3(estData->Sh, estData->dR,9); //expm(Sh) = dR
-    LinAlg_matmatmul_small(estData->N,estData->N,estData->R_hat, estData->dR, estData->R_hat); //R_hat <- R_hat*dR
-    LinAlg_matnormalizerotation(estData->R_hat); //Ensure R_hat remains in SO(3)
+    linalg_matvecmul(est_data->n,est_data->n,est_data->kp_e, est_data->c, est_data->kpe_c);
+    linalg_vec2skew3x3(est_data->kpe_c, est_data->kpe_c_x); //Kpe_c_X = S(Kpe*c)
+    linalg_vecvecsub(est_data->n,est_data->w, est_data->b_hat, est_data->w_hat); //w_hat = w - b_hat
+    //linalg_zerovec(est_data->n, est_data->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
+    linalg_vec2skew3x3(est_data->w_hat, est_data->w_hat_x); //w_hat_X = S(w_hat)
+    linalg_matmatadd(est_data->n,est_data->n,est_data->w_hat_x, est_data->kpe_c_x, est_data->skew_mat); //S = S(w_hat) + S(Kpe*c)
+    linalg_matscalmult(est_data->n,est_data->n,est_data->skew_mat,h,est_data->skew_mat_h); // Sh = S*h
+    linalg_expm3x3(est_data->skew_mat_h, est_data->d_rot_mat_hat,9); //expm(Sh) = dR
+    linalg_matmatmul_small(est_data->n,est_data->n,est_data->rot_mat_hat, est_data->d_rot_mat_hat, est_data->rot_mat_hat); //R_hat <- R_hat*dR
+    linalg_matnormalizerotation(est_data->rot_mat_hat); //Ensure R_hat remains in SO(3)
 
     //Also do a lowpass of w_hat
-    Estimator_vecLP(estData->N,estData->w_hat_f, estData->w_hat, h / estData->Lambda);
+    estimator_vec_low_pass(est_data->n,est_data->w_hat_f, est_data->w_hat, h / est_data->lambda);
 }
 
 
-void Estimator_find_current_mag_direction(estStruct* estData){
+void estimator_find_current_mag_direction(estStruct* est_data){
     //This function should only run when the magnetometer is stationary at roll = pitch = 0
     //How to stop it from running before this? Look at size of w?
     int is_stationary = 0;
@@ -178,8 +179,8 @@ void Estimator_find_current_mag_direction(estStruct* estData){
     while(!is_stationary){
         start = time_us_32();
         sleep_ms(20);
-        Estimator_get_imu_data(estData);
-        if(fabs(LinAlg_vecnorm(estData->N, estData->w)) > w_threshold){
+        estimator_get_imu_data(est_data);
+        if(fabs(linalg_vecnorm(est_data->n, est_data->w)) > w_threshold){
             duration = 0;
             PRINT("MOVING\n");
         }else{
@@ -195,43 +196,43 @@ void Estimator_find_current_mag_direction(estStruct* estData){
 
     int N = 3;
     double fmagread[3];
-    LinAlg_zerovec(N, fmagread);
+    linalg_zerovec(N, fmagread);
     for(int i = 0; i < 200; i++){
-        MMC5603_get_corrected_mag_reading(estData->m);
-        LinAlg_normalize(N,estData->m,estData->m);
-        Estimator_vecLP(N,fmagread,estData->m,0.05);
+        mmc5603_get_corrected_mag_reading(est_data->m);
+        linalg_normalize(N,est_data->m,est_data->m);
+        estimator_vec_low_pass(N,fmagread,est_data->m,0.05);
         sleep_ms(20); //Delay of 2ms may be too short
         //printvec(fmagread);
     }
     //Setting the filtered, normalized, and corrected magnetometer reading equal to the unit u1 vector used to calculate v2_hat:
-    LinAlg_veccopy(N,fmagread, estData->u1);
+    linalg_veccopy(N,fmagread, est_data->u1);
     PRINT("Done\n");
 }
 
-void Estimator_set_initial_gyro_bias(estStruct* estData)
+void estimator_set_initial_gyro_bias(estStruct* est_data)
 {
     PRINT("Gathering IMU gyro samples...\n");
     double sum[3];
     int samples = 1500;
-    LinAlg_zerovec(3, sum);
+    linalg_zerovec(3, sum);
     for(int i = 0; i < samples; i++){
-        Estimator_get_imu_data(estData);
+        estimator_get_imu_data(est_data);
         for(int j = 0; j < 3; j++){
-            sum[j] += estData->w[j];
+            sum[j] += est_data->w[j];
         }
         sleep_ms(3);
     }
     //Set the initial gyro bias
     for(int j = 0; j < 3; j++){
-        estData->b_hat[j] = sum[j]/samples;
+        est_data->b_hat[j] = sum[j]/samples;
     }
     PRINT("Done\n");
 }
 
-void Estimator_get_imu_data(estStruct* estData)
+void estimator_get_imu_data(estStruct* est_data)
 {
-    // MPU6050_get_imu_data(estData->a, estData->w);
-    // MPU6050_six_point_accel_correction(estData->a);
-    // ICM20948_get_imu_data(estData->a, estData->w);
-    ICM45686_get_imu_data(estData->a, estData->w);
+    // MPU6050_get_imu_data(est_data->a, est_data->w);
+    // MPU6050_six_point_accel_correction(est_data->a);
+    // icm20948_get_imu_data(est_data->a, est_data->w);
+    icm45686_get_imu_data(est_data->a, est_data->w);
 }

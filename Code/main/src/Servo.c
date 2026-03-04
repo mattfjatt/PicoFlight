@@ -1,19 +1,6 @@
-#include "headers/Servo.h"
+#include "headers/servo.h"
 
-//PWM slice setup constants 
-//Formula: PWM_WRAP_VALUE = 150*10^6/(Desired_PWM_freq*CLOCK_DIVIDER) - 1
-//46874 at prescaler of 46874 gives a refresh rate of 50Hz(very slow)
-//Setting it to 7037 gives a refresh rate of approximately 333Hz, which is what the DS452MG servos are designed for
-//9375 - 1 -> 250Hz seems more stable
-static const float CLOCK_DIVIDER = 64.f;
-static const uint16_t PWM_WRAP_VALUE = 9374;
-static const float F_CPU = 150*1e6; 
-static const float US_TO_CYCLES = F_CPU/CLOCK_DIVIDER/1e6; //How many cycles there is in 1 micro second
-
-static const int MAX_SERVO_DUTY = 2500;
-static const int MIN_SERVO_DUTY = 500;
-
-void Servo_setup_pwm_pins()
+void servo_setup_pwm_pins()
 {
     gpio_set_function(SERVO_0, GPIO_FUNC_PWM);
     gpio_set_function(SERVO_1, GPIO_FUNC_PWM);
@@ -35,12 +22,12 @@ void Servo_setup_pwm_pins()
     pwm_set_enabled(slice_2, true);
 }
 
-void Servo_init()
+void servo_init()
 {
-    Servo_setup_pwm_pins();
+    servo_setup_pwm_pins();
 }
 
-void Servo_set_us(ServoPin_t pin, uint16_t period_us)
+void servo_set_us(uint8_t pin, uint16_t period_us)
 {
     if(pin != SERVO_0 && pin != SERVO_1 && pin != SERVO_2 && pin != SERVO_3){
         PRINT("Servo: Invalid servo/ESC pin provided to Servo_set_us()!\n");

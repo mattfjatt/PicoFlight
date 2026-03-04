@@ -1,8 +1,8 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "headers/Logging.h"
-#include "headers/Pins.h"
+#include "headers/logging.h"
+#include "headers/pins.h"
 #include "pico/stdlib.h"
 #include "hardware/irq.h"
 
@@ -12,16 +12,22 @@ typedef struct{
     volatile bool previous_pin_state[4];
 }recStruct;
 
-extern recStruct receiverData;
+extern recStruct receiver_data;
 
-void Receiver_gpio_callback(uint gpio, uint32_t events);
+void receiver_gpio_callback(uint gpio, uint32_t events);
 
-void Receiver_setup_gpio_interrupts_pins();
+void receiver_setup_gpio_interrupts_pins();
 
-void Receiver_init_struct(recStruct* recData);
+void receiver_init_struct(recStruct* rec_data);
 
-void Receiver_print_data();
+void receiver_print_data();
 
-void Receiver_init(recStruct* recData);
+void receiver_init(recStruct* rec_data);
+
+//Will use the following pins:
+#define GPIO_CH_0 10
+#define GPIO_CH_1 11
+#define GPIO_CH_2 12
+#define GPIO_CH_3 13
 
 #endif

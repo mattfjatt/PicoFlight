@@ -36,18 +36,18 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(main main.c
-        src/Bus.c
-        src/MPU6050.c
-        src/MMC5603.c
-        src/ICM45686.c
-        src/ICM20948.c
-        src/LinAlg.c
-        src/Estimator.c
-        src/Receiver.c
-        src/Servo.c
-        src/Controller.c
-        src/Optimizer.c
-        src/Config.c)
+        src/bus.c
+        src/mpu6050.c
+        src/mmc5603.c
+        src/icm45686.c
+        src/icm20948.c
+        src/linalg.c
+        src/estimator.c
+        src/receiver.c
+        src/servo.c
+        src/controller.c
+        src/optimizer.c
+        src/config.c)
 
 pico_set_program_name(main "main")
 pico_set_program_version(main "0.1")

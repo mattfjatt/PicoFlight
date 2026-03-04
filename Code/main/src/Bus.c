@@ -1,6 +1,6 @@
-#include "headers/Bus.h"
+#include "headers/bus.h"
 
-void Bus_spi_init()
+void bus_spi_init()
 {
     //Setup spi at 1 MHz
     spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
@@ -15,7 +15,7 @@ void Bus_spi_init()
     spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 }
 
-void Bus_i2c_init()
+void bus_i2c_init()
 {
     //Setup i2c0 at 400kHz, currently used by MPU6050
     i2c_init(i2c0, 400 * 1000); //i2c0 = i2c_default
