@@ -5,17 +5,17 @@
 
     #define LOG(msg) do{ \
         printf("Function: %s. Line: %d. Msg: %s", __func__, __LINE__, msg); \
-        fflush(stdout); \
+        /*fflush(stdout);*/ \
         }while(0)
 
     #define PRINT(msg) do{ \
         printf("%s", msg); \
-        fflush(stdout); \
+        /*fflush(stdout);*/ \
         }while(0)
 
     #define PRINTNUM(string, num) do{ \
         printf(string, num); \
-        fflush(stdout); \
+        /*fflush(stdout);*/ \
         }while(0)
 #else
     #define LOG(msg) ((void)0)

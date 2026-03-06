@@ -82,4 +82,6 @@ void estimator_set_initial_gyro_bias(estStruct* est_data);
 
 void estimator_get_imu_data(estStruct* est_data);
 
+void test_func(estStruct* est_data, double h);
+
 #endif

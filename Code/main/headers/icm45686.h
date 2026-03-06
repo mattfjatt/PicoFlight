@@ -6,7 +6,6 @@
 #include "headers/bus.h"
 #include "headers/linalg.h"
 #include "hardware/pwm.h"
-//This is the IMU that will be used later
 
 void icm45686_init();
 
@@ -88,6 +87,7 @@ void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, u
 #define ICM45686_IPREG_SYS2_REG_123     0x7B
 #define ICM45686_IPREG_SYS1_REG_166     0xA6
 #define ICM45686_REG_MISC1              0x35 //MCLK source 
+#define ICM45686_SMC_CONTROL_0          0x58 //IPREG_TOP1
 
 //Pullup register for pin 9 (int 2)
 #define ICM45686_IPREG_BAR_REG_62   0x3E
@@ -163,6 +163,9 @@ void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, u
 #define ICM45686_OSC_ID_OVRD_DEFAULT    0b0000
 #define ICM45686_OSC_ID_OVRD_RELAXATION 0b0010
 #define ICM45686_OSC_ID_OVRD_EXTERNAL   0b1000
+
+#define ICM45686_ACCEL_LP_CLK_SEL_MASK  0b10000
+#define ICM45686_ACCEL_LP_CLK_SEL       0b10000
 
 
 //BANKS

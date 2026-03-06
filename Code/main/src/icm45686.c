@@ -26,24 +26,32 @@ void icm45686_init()
     icm45686_set_power_modes(ICM45686_GYRO_OFF, ICM45686_ACCEL_OFF);
     sleep_ms(50);
 
-    sleep_ms(10);
     icm45686_set_rp2350_pwm_signal();
+    sleep_ms(200); //Let clock stabilize
     icm45686_set_clock_source();
 
     icm45686_set_measurement_ranges(ICM45686_GYRO_FS_1000,ICM45686_ACCEL_FS_2G);
     icm45686_set_odr_frequency(ICM45686_GYRO_ODR_1K6, ICM45686_ACCEL_ODR_1K6);
     icm45686_set_data_endianness();
     icm45686_set_power_modes(ICM45686_GYRO_LOW_NOISE, ICM45686_ACCEL_LOW_NOISE);
-
+    sleep_ms(100); //Takes the gyro 35ms to start
+   
     double acc[3];
     double gyr[3];
-    
+    uint8_t val;
+    icm45686_read_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SMC_CONTROL_0, &val);
+    PRINTNUM("SMC_CONTROL0 = %u\n", val);
+    // sleep_ms(3000);
 
-    while(1){
-        icm45686_get_imu_data(acc,gyr);
-        linalg_printvec(3,gyr);
-        sleep_ms(10);
-    }
+    // while(1){
+    //     icm45686_get_imu_data(acc,gyr);
+    //     if(linalg_vecnorm(3,acc) > 1.15 || linalg_vecnorm(3,acc) < 0.85){
+    //         PRINTNUM("ACC norm = %f\n", linalg_vecnorm(3,acc));
+    //     }
+    //     // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
+    //     // linalg_printvec(3,gyr);
+    //     sleep_ms(1);
+    // }
 
 }
 
@@ -132,9 +140,6 @@ void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
     if(valid_accel_fs){
         icm45686_read_modify_write_register(ICM45686_ACCEL_CONFIG0, accel_fs, ICM45686_ACCEL_FS_MASK,ICM45686_CS);
     }
-
-    PRINTNUM("gyro sense = %f  ", gyro_sensitivity);
-    PRINTNUM("accel sense = %f  \n", accel_sensitivity);
 }
 
 void icm45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr)
@@ -182,8 +187,6 @@ void icm45686_set_rp2350_pwm_signal()
     pwm_init(slice, &config, true);
     pwm_set_enabled(slice, true);
     pwm_set_chan_level(slice, 1, PWM_WRAP_VALUE/2); //Set to 50% duty
-
-    sleep_ms(200); //Let clock stabilize
 }
 
 void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value)
@@ -263,12 +266,19 @@ void icm45686_set_clock_source()
                                         ICM45686_PADS_INT2_CFG_OVRD_VAL_MASK,
                                         ICM45686_CS);
 
+    //Set sync timing control for accel
+    icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1,
+                                                 ICM45686_SMC_CONTROL_0,
+                                                 ICM45686_ACCEL_LP_CLK_SEL,
+                                                 ICM45686_ACCEL_LP_CLK_SEL_MASK);
+
     //Next, to enable the CLKIN function, the RTC_MODE bit must be set to 1 in
     //----->RTC_CONFIG, user bank 0
     icm45686_read_modify_write_register(ICM45686_RTC_CONFIG,
                                         ICM45686_RTC_MODE,
                                         ICM45686_RTC_MODE_MASK,
                                         ICM45686_CS);
+
     
     //I3C STC and CLKIN use the same interpolator but I3C has higher priority. To use CLKIN, I3C_STC_MODE must be set to 0 on
     //----->SIFS_I3C_STC_CFG, user bank IPREG_TOP1

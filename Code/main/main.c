@@ -20,7 +20,6 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data);
 
 void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h);
 
-
 int main()
 {
     stdio_init_all();
@@ -39,10 +38,29 @@ int main()
     linalg_zerovec(N,empty);
     linalg_zerovec(N,empty);
     linalg_zerovec(N,various_data);
-    double h = 0.0005;
+    double h = 0.05;
     double mat[3][3];
     sleep_ms(1000);
-    
+
+    while(1){
+        // icm45686_get_imu_data(acc,gyr);
+        // linalg_veccopy(3,gyr, estimator_data.w);
+        // linalg_veccopy(3,acc, estimator_data.a);
+        estimator_estimate_attitude(&estimator_data, h);
+        //test_func(&estimator_data, h);
+        if(linalg_vecnorm(3,estimator_data.a) > 1.15 || linalg_vecnorm(3,estimator_data.a) < 0.85){
+            PRINTNUM("ACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC norm = %f\n", linalg_vecnorm(3,estimator_data.a));
+        }
+        // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
+        // linalg_printvec(3,gyr);
+        PRINT("fhgjfhghfkdhfhfhhgjrhjghfdjkghfdhgjkfdhjkgfdkjghkfdhjhjhjhjhjhjhhhjhjhjhhgkdfhgfg\n");
+        sleep_ms(1);
+    }
+
+    linalg_zeromat(3,3,mat);
+    linalg_zerovec(3,bias);
+    uint32_t counter = 0;
+
     while (true)
     {
         uint64_t start = time_us_64();
@@ -53,13 +71,17 @@ int main()
         // linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/PI);
         // linalg_vecscalmult(N,estimator_data.w, wRaw, 180.0/PI);
         // linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/3.141590);
-        icm45686_get_imu_data(acc,gyr);
-        linalg_printvec(3, gyr);
-        // linalg_colvecs2mat3x3(mat,eul,bias,estimator_data.w);
-        // linalg_printmat(N,N,mat);
+        // linalg_colvecs2mat3x3(mat,eul,bias,wRaw);
 
+        if((counter % 100) == 0){
+            //linalg_printmat(N,N,mat);
+            //linalg_printvec(3,bias);
+            PRINT("fhgjfhghfkfg\n");
+        }
         
-        sleep_ms(10);
+        counter++;
+        
+        sleep_ms(3);
         h = (time_us_64() - start)/1e6;
     }
 }
@@ -83,7 +105,7 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 
 void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h)
 {
-    estimator_estimate_attitude(est_data, h);
+    //estimator_estimate_attitude(est_data, h);
     //controller_run_quadcopter(cont_data, rec_data, est_data, h);
 }
 

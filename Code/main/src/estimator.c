@@ -36,7 +36,7 @@ void estimator_rot_mat_next(double rot_mat[][3],double w[3],double h){
 
 void estimator_vec_low_pass(int n, double y[n], double x[n], double k){
     for(int i = 0; i < n; i++){
-        y[i] = (1-k)*y[i] + k*x[i]; 
+        y[i] = (1-k)*y[i] + k*x[i];
     }
 }
 
@@ -105,18 +105,25 @@ void estimator_init(estStruct* est_data){
 };
 
 void estimator_estimate_attitude(estStruct* est_data,double h){
-    estimator_get_imu_data(est_data);
+    //estimator_get_imu_data(est_data);
+    //icm45686_get_imu_data(est_data->a, est_data->w);
+    test_func(est_data,h);
     //mmc5603_get_corrected_mag_reading(est_data->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
+    /*
     int check_magnitude = 1;
+    
     //v1:
     if((linalg_vecnorm(est_data->n, est_data->a) > 1.15 || linalg_vecnorm(est_data->n, est_data->a) < 0.85) && check_magnitude){ //1.15 and 0.85 can be moved closer to 1.0 when accel is calibrated
         linalg_zerovec(est_data->n, est_data->v1);
-        LOG("Magnitude of accel outside limits\n");
+        LOG("Magnitude of accel outside limits..............................................\n");
+        PRINTNUM("Accel norm %f\n", linalg_vecnorm(est_data->n, est_data->a));
+        //linalg_printvec(3,est_data->a);
     }else{
         linalg_normalize(est_data->n,est_data->a,est_data->v1);
     }
+
 
     //v2
     if((linalg_vecnorm(est_data->n, est_data->m) > 1.20 || linalg_vecnorm(est_data->n, est_data->m) < 0.80) && check_magnitude){
@@ -125,6 +132,7 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
     }else{
         linalg_normalize(est_data->n,est_data->m,est_data->v2);
     }
+    
     
     linalg_mattranspose(est_data->n,est_data->n,est_data->rot_mat_hat, est_data->rot_mat_hat_transposed);
     //Create v1_hat
@@ -135,7 +143,6 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
     //Make the skew-symmetric matrices
     linalg_vec2skew3x3(est_data->v1, est_data->v1_x);
     linalg_vec2skew3x3(est_data->v2, est_data->v2_x);
-
 
     //c = k1*S(v1)*v1_hat + k2*S(v2)*v2_hat
     linalg_matscalmult(est_data->n,est_data->n,est_data->v1_x, est_data->k1, est_data->v1_x);
@@ -150,6 +157,8 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
     linalg_vecvecadd(est_data->n,est_data->b_hat, est_data->db_hat, est_data->b_hat);
     //linalg_printvec(est_data->w_hat);
 
+    
+
     //Correction term in R_hat_dot:
     linalg_matvecmul(est_data->n,est_data->n,est_data->kp_e, est_data->c, est_data->kpe_c);
     linalg_vec2skew3x3(est_data->kpe_c, est_data->kpe_c_x); //Kpe_c_X = S(Kpe*c)
@@ -162,8 +171,10 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
     linalg_matmatmul_small(est_data->n,est_data->n,est_data->rot_mat_hat, est_data->d_rot_mat_hat, est_data->rot_mat_hat); //R_hat <- R_hat*dR
     linalg_matnormalizerotation(est_data->rot_mat_hat); //Ensure R_hat remains in SO(3)
 
+    */
     //Also do a lowpass of w_hat
-    estimator_vec_low_pass(est_data->n,est_data->w_hat_f, est_data->w_hat, h / est_data->lambda);
+    //static double dumb_fuck[3];
+    //estimator_vec_low_pass(est_data->n,est_data->w_hat_f, est_data->w_hat, h / est_data->lambda);
 }
 
 void estimator_find_current_mag_direction(estStruct* est_data){
@@ -211,20 +222,20 @@ void estimator_set_initial_gyro_bias(estStruct* est_data)
 {
     PRINT("Gathering IMU gyro samples...\n");
     double sum[3];
-    int samples = 1500;
+    int samples = 1000;
     linalg_zerovec(3, sum);
+
     for(int i = 0; i < samples; i++){
         estimator_get_imu_data(est_data);
         for(int j = 0; j < 3; j++){
             sum[j] += est_data->w[j];
         }
-        sleep_ms(3);
+        sleep_us(2000);
     }
     //Set the initial gyro bias
     for(int j = 0; j < 3; j++){
         est_data->b_hat[j] = sum[j]/samples;
     }
-    PRINT("Done\n");
 }
 
 void estimator_get_imu_data(estStruct* est_data)
@@ -232,5 +243,9 @@ void estimator_get_imu_data(estStruct* est_data)
     // mpu6050_get_imu_data(est_data->a, est_data->w);
     // mpu6050_six_point_accel_correction(est_data->a);
     // icm20948_get_imu_data(est_data->a, est_data->w);
+    icm45686_get_imu_data(est_data->a, est_data->w);
+}
+
+void test_func(estStruct* est_data, double h){
     icm45686_get_imu_data(est_data->a, est_data->w);
 }
