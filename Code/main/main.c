@@ -43,22 +43,6 @@ int main()
     sleep_ms(1000);
     int counter = 0;
 
-    
-
-    // while(1){
-    //     // icm45686_get_imu_data(acc,gyr);
-    //     // linalg_veccopy(3,gyr, estimator_data.w);
-    //     // linalg_veccopy(3,acc, estimator_data.a);
-    //     estimator_estimate_attitude(&estimator_data, h);
-    //     // test_func(&estimator_data, h);
-    //     if(linalg_vecnorm(3,estimator_data.a) > 1.15 || linalg_vecnorm(3,estimator_data.a) < 0.85){
-    //         PRINTNUM("ACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC norm = %f\n", linalg_vecnorm(3,estimator_data.a));
-    //     }
-    //     // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
-    //     // linalg_printvec(3,gyr);
-    //     PRINT("kkkkkkkkkkkkkk\n");
-    //     sleep_ms(1);
-    // }
 
     linalg_zeromat(3,3,mat);
     linalg_zerovec(3,bias);

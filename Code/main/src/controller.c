@@ -10,18 +10,6 @@ void controller_init(contStruct* cont_data){
     linalg_eye(cont_data->N,cont_data->rot_mat_d);
     linalg_eye(cont_data->N,cont_data->rot_mat_d_transposed);
     linalg_eye(cont_data->N,cont_data->inertia_mat_hat);
-    linalg_zeromat(cont_data->N,cont_data->N,cont_data->e_mat_hat);
-    linalg_zeromat(cont_data->N,cont_data->N,cont_data->kp_mat);
-    linalg_zeromat(cont_data->N,cont_data->N,cont_data->kd_mat);
-    linalg_zeromat(cont_data->N,cont_data->N,cont_data->ki_mat);
-
-    linalg_zerovec(cont_data->N,cont_data->e_hat);
-    linalg_zerovec(cont_data->N,cont_data->tau);
-    linalg_zerovec(cont_data->N,cont_data->kp_e_hat);
-    linalg_zerovec(cont_data->N,cont_data->kd_w_hat);
-    linalg_zerovec(cont_data->N,cont_data->e_w_hat);
-    linalg_zerovec(cont_data->N,cont_data->euler);
-    linalg_zerovec(cont_data->N,cont_data->e_i_hat);
 
     //Set gains:
     cont_data->kp_mat[0][0] = - kp_x;

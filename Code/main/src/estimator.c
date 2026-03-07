@@ -49,30 +49,6 @@ void estimator_init(estStruct* est_data){
     linalg_eye(est_data->n,est_data->rot_mat_hat);
     linalg_eye(est_data->n,est_data->rot_mat_hat_transposed);
     linalg_eye(est_data->n,est_data->ki_e);
-    linalg_zeromat(est_data->n,est_data->n,est_data->v1_x);
-    linalg_zeromat(est_data->n,est_data->n,est_data->v2_x);
-    linalg_zeromat(est_data->n,est_data->n,est_data->d_rot_mat_hat);
-    linalg_zeromat(est_data->n,est_data->n,est_data->kp_e);
-    linalg_zeromat(est_data->n,est_data->n,est_data->w_hat_x);
-    linalg_zeromat(est_data->n,est_data->n,est_data->kpe_c_x);
-    linalg_zerovec(est_data->n,est_data->b_hat);
-    linalg_zerovec(est_data->n,est_data->w_hat);
-    linalg_zerovec(est_data->n,est_data->c);
-    linalg_zerovec(est_data->n,est_data->b_hat_dot);
-    linalg_zerovec(est_data->n,est_data->db_hat);
-    linalg_zeromat(est_data->n,est_data->n,est_data->skew_mat);
-    linalg_zeromat(est_data->n,est_data->n,est_data->skew_mat_h);
-    linalg_zerovec(est_data->n,est_data->v1);
-    linalg_zerovec(est_data->n,est_data->v2);
-    linalg_zerovec(est_data->n,est_data->v1_hat);
-    linalg_zerovec(est_data->n,est_data->v2_hat);
-    linalg_zerovec(est_data->n,est_data->v1_x_v1_hat);
-    linalg_zerovec(est_data->n,est_data->v2_x_v2_hat);
-    linalg_zerovec(est_data->n,est_data->kpe_c);
-    linalg_zerovec(est_data->n,est_data->w);
-    linalg_zerovec(est_data->n,est_data->a);
-    linalg_zerovec(est_data->n,est_data->m);
-    linalg_zerovec(est_data->n,est_data->w_hat_f);
 
     est_data->k1 = 1.0; //For accelerometer
     est_data->k2 = 1.0; //For magnetometer
