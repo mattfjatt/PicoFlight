@@ -13,9 +13,7 @@ typedef struct{
 #define PARAMETER_COUNT 9
 extern Sample samples[SAMPLE_COUNT];
 
-//According to my current unerstanding of my own implementation, the two functions above are the only functions strictly specific to the magnetometer cost function
-//To generalize, they could be passed as function pointers to the optimizer below, this means ri and gradient_ri can be defined and declared in the sensor-specific file,
-//while the rest of the optimizer can be in its own optimizer namespace
+
 double optimizer_evaluate_ri(int param_count,
                              double opt_params[param_count],
                              double si[3]);

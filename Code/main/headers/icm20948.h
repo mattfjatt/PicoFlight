@@ -24,8 +24,6 @@ void icm20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_u
 
 void icm20948_get_imu_data(double acc[3], double gyr[3]);
 
-#define ICM20948_CS 5
-
 //Register map
 
 #define ICM20948_USER_BANK_0 0

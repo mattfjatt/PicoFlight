@@ -25,42 +25,13 @@ int main()
     stdio_init_all();
     sleep_ms(7000);
     Main_init(&controller_data, &receiver_data, &estimator_data);
+
+    double h = 0.005;
     
-    int N = 3;
-    double eul[3];
-    double gyr[3];
-    double acc[3];
-    double bias[3];
-    double wRaw[3];
-    double empty[3];
-    double various_data[3];
-    double a_f[3];
-    linalg_zerovec(N,empty);
-    linalg_zerovec(N,empty);
-    linalg_zerovec(N,various_data);
-    double h = 0.05;
-    double mat[3][3];
-    sleep_ms(1000);
-    int counter = 0;
-
-
-    linalg_zeromat(3,3,mat);
-    linalg_zerovec(3,bias);
-
     while (true)
     {
         uint64_t start = time_us_64();
         Main_run(&controller_data, &receiver_data, &estimator_data, h);
-        
-        estimator_rot_mat_to_euler(estimator_data.rot_mat_hat, eul);
-        linalg_vecscalmult(N,eul, eul, 180.0/PI);
-        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/PI);
-        linalg_vecscalmult(N,estimator_data.w, wRaw, 180.0/PI);
-        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/3.141590);
-        linalg_colvecs2mat3x3(mat,eul,bias,wRaw);
-        linalg_printmat(3,3,mat);
-        
-        sleep_ms(5);
         h = (time_us_64() - start)/1e6;
     }
 }
@@ -77,7 +48,7 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
     //mpu6050_init();
     //servo_init();
     //receiver_init(rec_data);
-    //controller_init(cont_data);
+    controller_init(cont_data);
     estimator_init(est_data);
     //sleep_ms(500);
 }
@@ -85,7 +56,7 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h)
 {
     estimator_estimate_attitude(est_data, h);
-    //controller_run_quadcopter(cont_data, rec_data, est_data, h);
+    controller_run_quadcopter(cont_data, rec_data, est_data, h);
 }
 
 
