@@ -24,10 +24,4 @@ void receiver_print_data();
 
 void receiver_init(recStruct* rec_data);
 
-//Will use the following pins:
-#define GPIO_CH_0 10
-#define GPIO_CH_1 11
-#define GPIO_CH_2 12
-#define GPIO_CH_3 13
-
 #endif

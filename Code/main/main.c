@@ -27,25 +27,18 @@ int main()
     Main_init(&controller_data, &receiver_data, &estimator_data);
     
     int N = 3;
-    double eul[3];
-    double gyr[3];
-    double acc[3];
-    double bias[3];
-    double wRaw[3];
-    double empty[3];
-    double various_data[3];
-    double a_f[3];
-    linalg_zerovec(N,empty);
-    linalg_zerovec(N,empty);
-    linalg_zerovec(N,various_data);
+    double eul[3] = {0};
+    double gyr[3] = {0};
+    double acc[3] = {0};
+    double bias[3] = {0};
+    double wRaw[3] = {0};
+    double empty[3] = {0};
+    double various_data[3] = {0};
+    double a_f[3] = {0};
     double h = 0.05;
-    double mat[3][3];
+    double mat[3][3] = {0};
     sleep_ms(1000);
     int counter = 0;
-
-
-    linalg_zeromat(3,3,mat);
-    linalg_zerovec(3,bias);
 
     while (true)
     {
