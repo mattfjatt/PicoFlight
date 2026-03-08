@@ -6,7 +6,6 @@ static double accel_sensitivity = 1024.0;
 
 static const float CLOCK_DIVIDER = 1.25f;
 static const uint16_t PWM_WRAP_VALUE = 3749;
-static const float F_CPU = 150*1e6; 
 
 
 void icm45686_init()
@@ -36,24 +35,6 @@ void icm45686_init()
     icm45686_set_data_endianness();
     icm45686_set_power_modes(ICM45686_GYRO_LOW_NOISE, ICM45686_ACCEL_LOW_NOISE);
     sleep_ms(100); //Takes the gyro 35ms to start
-   
-    double acc[3];
-    double gyr[3];
-    uint8_t val;
-    icm45686_read_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SMC_CONTROL_0, &val);
-    PRINTNUM("SMC_CONTROL0 = %u\n", val);
-    // sleep_ms(3000);
-
-    // while(1){
-    //     icm45686_get_imu_data(acc,gyr);
-    //     if(linalg_vecnorm(3,acc) > 1.15 || linalg_vecnorm(3,acc) < 0.85){
-    //         PRINTNUM("ACC norm = %f\n", linalg_vecnorm(3,acc));
-    //     }
-    //     // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
-    //     // linalg_printvec(3,gyr);
-    //     sleep_ms(1);
-    // }
-
 }
 
 void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
@@ -257,9 +238,6 @@ void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, u
 
 void icm45686_set_clock_source()
 {
-    uint8_t tx_buf[2];
-    uint8_t rx_buf[2];
-
     //Will use INT2 pin for CLKIN, how to configure it for this? Section 7.3 of ICM45686 user guide:
     //To use pin 9 as CLKIN, the PADS_INT2_CFG_OVRD_VAL must be set to 2 in
     //----->IOC_PAD_SCENARIO_OVRD, user bank 0
@@ -371,7 +349,7 @@ void icm45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t*
 {
     tx_buf[0] = dev_register | SET_SPI_READ; //Sets the read bit, bit 7, to 1
     gpio_put(cs_pin,0); //Chip select is active low
-    int num = spi_write_read_blocking(spi0, tx_buf, rx_buf, n_bytes);
+    spi_write_read_blocking(spi0, tx_buf, rx_buf, n_bytes);
     gpio_put(cs_pin,1);
 }
 

@@ -19,11 +19,6 @@ static const float US_TO_CYCLES = F_CPU/CLOCK_DIVIDER/1e6; //How many cycles the
 static const int MAX_SERVO_DUTY = 2500;
 static const int MIN_SERVO_DUTY = 500;
 
-#define SERVO_0 18 //Slice 1, motor0
-#define SERVO_1 19 //Slice 1, motor1
-#define SERVO_2 20 //Slice 2, motor2
-#define SERVO_3 21 //Slice 2, motor3
-
 
 void servo_setup_pwm_pins();
 

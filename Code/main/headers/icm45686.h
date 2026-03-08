@@ -38,11 +38,6 @@ void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
 
 void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
 
-#define ICM45686_CS 6
-//#define ICM45686_PICO_CLOCK_PIN 7
-//gpios connected to the clock system are 21 23 24 25
-#define ICM45686_PICO_CLOCK_PIN 21 //Conflict with servo! But is the only clock pin available on the pico 2
-
 //Registers
 #define ICM45686_ACCEL_DATA_X1 0x00
 

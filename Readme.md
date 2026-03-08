@@ -1,5 +1,6 @@
 # Overview
 This repo contains the source code for a PID flight controller using the Mahony complementary filter to estimate attitude and the Levenberg-Marquardt algorithm to calibrate the magnetometer.
+The code is still very much work in progress.
 
 # Motivation/Purpose
 The motivation for making this flight controller is that it's fun. 
@@ -14,16 +15,6 @@ The motivation for making this flight controller is that it's fun.
 - At startup, it detects when the UAV has been placed on the ground and uses this information to measure the gyro bias and give the estimator a warm-start.
 
 - Supports MPU6050, ICM20948, ICM45686. It can fly without magnetometer, but yaw will drift more.
-
-
-# Getting started
-
-
-# Usage
-
-
-# Configuration
-
 
 # References
 "Nonlinear Complementary Filters on the Special Orthogonal Group"

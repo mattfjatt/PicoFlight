@@ -10,8 +10,8 @@
 void mpu6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg)
 {
     uint8_t read_buffer = i2c_dev_reg;
-    i2c_write_blocking(i2c_default, MPU6050_I2C_ADDRESS, &read_buffer, 1,true);
-    i2c_read_blocking(i2c_default, MPU6050_I2C_ADDRESS, &read_buffer, 1,true);
+    i2c_write_blocking(i2c_default, i2c_dev_add, &read_buffer, 1,true);
+    i2c_read_blocking(i2c_default, i2c_dev_add, &read_buffer, 1,true);
     
     PRINT("0b");
     mpu6050_print_binary(read_buffer);

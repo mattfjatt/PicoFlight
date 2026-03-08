@@ -68,9 +68,12 @@ target_include_directories(main PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
-# This removes the filepath used on the host computer in __FILE__, making it shorter
+# The "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=" removes the filepath used on the host computer in __FILE__, making it shorter
 target_compile_options(main PRIVATE
     -ffile-prefix-map=${CMAKE_SOURCE_DIR}=  
+    -Wall
+    -Wextra
+    -pedantic
 )
 
 
