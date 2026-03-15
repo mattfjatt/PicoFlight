@@ -39,8 +39,10 @@ add_executable(main main.c
         src/bus.c
         src/mpu6050.c
         src/mmc5603.c
+        src/mmc5983.c
         src/icm45686.c
         src/icm20948.c
+        src/bmp388.c
         src/linalg.c
         src/estimator.c
         src/receiver.c

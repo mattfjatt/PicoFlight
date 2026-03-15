@@ -3,6 +3,8 @@
 //Here, gpio pins are defined
 //TODO: Change to enums?
 
+/*
+//These are the pins for the MPU6050-based PCB for receiver pins and pwm pins
 //PWM-pins for servo/ESC control
 #define SERVO_0 18 //Slice 1, motor0
 #define SERVO_1 19 //Slice 1, motor1
@@ -14,21 +16,44 @@
 #define GPIO_CH_1 11
 #define GPIO_CH_2 12
 #define GPIO_CH_3 13
+*/
+
+//These are the pins for the ICM45686-based PCB for receiver pins and pwm pins
+
+//PWM-pins for servo/ESC control
+//TODO: Change the names SERVO_x and GPIO_CH_x to something that more clearly indicates what the pins do
+#define SERVO_0 36
+#define SERVO_1 37
+#define SERVO_2 38
+#define SERVO_3 39 
+
+//Receiver-pins
+#define GPIO_CH_0 25
+#define GPIO_CH_1 26
+#define GPIO_CH_2 27
+#define GPIO_CH_3 28
 
 //SPI-pins
 #define SPI0_MOSI 3
 #define SPI0_MISO 4
 #define SPI0_SCK  2
 
+#define SPI1_MOSI 11
+#define SPI1_MISO 12
+#define SPI1_SCK  10
+
 #define ICM20948_CS 5
 #define ICM45686_CS 6
+#define MMC5983_CS  13
+#define BMP388_CS   14
+
 
 //IMU interrupt pins
 #define ICM45686_INT1_PIN 14
 
 //Clock-pin
 //gpios connected to the clock system are 21 23 24 25
-#define ICM45686_PICO_CLOCK_PIN 21 //Conflict with servo! But is the only clock pin available on the pico 2, do not run with servo!
+#define ICM45686_PICO_CLOCK_PIN 21 //May conflict with servo! But is the only clock pin available on the pico 2! Do not run with servo!
 
 
 //I2C-pins
