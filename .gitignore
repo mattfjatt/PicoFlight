@@ -2,11 +2,8 @@ CAD/
 Datasheets/
 Electronics/
 Img/
-KuleSensorer.txt
-NotesNextPCB.txt
 Code/MagnetometerRawData
 Code/Matlab
-Code/Todo.txt
 Code/main/.vscode
 Code/main/build
 Code/CProgramming/
@@ -15,3 +12,5 @@ Code/*.zip
 Code/Cstuff
 Code/Main Flight Controller Components.txt
 Code/ArduinoTTL/
+Code/*.txt
+*.txt

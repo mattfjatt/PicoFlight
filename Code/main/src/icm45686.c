@@ -7,6 +7,9 @@ static double accel_sensitivity = 1024.0;
 static const float CLOCK_DIVIDER = 1.25f;
 static const uint16_t PWM_WRAP_VALUE = 3749;
 
+static uint32_t int1_counter = 0;
+static uint32_t pin = 0;
+
 
 void icm45686_init()
 {
@@ -25,7 +28,13 @@ void icm45686_init()
     icm45686_set_power_modes(ICM45686_GYRO_OFF, ICM45686_ACCEL_OFF);
     sleep_ms(50);
 
-    //icm45686_set_rp2350_pwm_signal();
+    //Int1 setup
+    icm45686_configure_int1_pin();
+
+    gpio_init(ICM45686_INT1_PIN);
+    gpio_set_dir(ICM45686_INT1_PIN, GPIO_IN); //high impedance mode
+    gpio_set_irq_enabled_with_callback(ICM45686_INT1_PIN, GPIO_IRQ_EDGE_RISE, true, icm45686_int1_callback);
+
     icm45686_set_rp2350_clock_out();
     sleep_ms(200); //Let clock stabilize
     icm45686_set_clock_source();
@@ -35,6 +44,39 @@ void icm45686_init()
     icm45686_set_data_endianness();
     icm45686_set_power_modes(ICM45686_GYRO_LOW_NOISE, ICM45686_ACCEL_LOW_NOISE);
     sleep_ms(100); //Takes the gyro 35ms to start
+
+    while(1){
+        PRINTNUM("interrupt counter = %u\n", int1_counter);
+        PRINTNUM("gpio = %u\n", pin);
+        sleep_ms(1000);
+    }
+}
+
+void icm45686_int1_callback(uint gpio, uint32_t events)
+{
+    int1_counter++;
+    pin = gpio;
+}
+
+void icm45686_configure_int1_pin()
+{
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, 0x0,0xFF ,ICM45686_CS); //Zero the register
+    icm45686_read_modify_write_register(ICM45686_INT1_CONFIG1, 0x0,0xFF ,ICM45686_CS); //Zero the register
+
+    icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, ICM45686_INT1_STATUS_EN_DRDY,ICM45686_INT1_STATUS_EN_DRDY_MASK, ICM45686_CS); //Set data ready interrupt
+    icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, ICM45686_INT1_DRIVE,ICM45686_INT1_DRIVE_MASK,ICM45686_CS); //INT1 pin behavior setup
+
+    icm45686_read_from_register(ICM45686_INT1_CONFIG0,tx_buf,rx_buf,2,ICM45686_CS);
+    PRINTNUM("INT1_CONFIG0 = %u\n", rx_buf[1]);
+
+    icm45686_read_from_register(ICM45686_INT1_CONFIG1,tx_buf,rx_buf,2,ICM45686_CS);
+    PRINTNUM("INT1_CONFIG1 = %u\n", rx_buf[1]);
+
+    icm45686_read_from_register(ICM45686_INT1_CONFIG2,tx_buf,rx_buf,2,ICM45686_CS);
+    PRINTNUM("INT1_CONFIG2 = %u\n", rx_buf[1]);
 }
 
 void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)

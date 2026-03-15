@@ -38,6 +38,10 @@ void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
 
 void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
 
+void icm45686_configure_int1_pin();
+
+void icm45686_int1_callback(uint gpio, uint32_t events);
+
 //Registers
 #define ICM45686_ACCEL_DATA_X1 0x00
 
@@ -167,6 +171,18 @@ void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, u
 #define ICM45686_ACCEL_LP_CLK_SEL_MASK  0b10000
 #define ICM45686_ACCEL_LP_CLK_SEL       0b10000
 
+//INT1 CONFIG
+#define ICM45686_INT1_STATUS_EN_DRDY_MASK   0b100
+#define ICM45686_INT1_STATUS_EN_DRDY        0b100
+
+#define ICM45686_INT1_DRIVE_MASK            0b100
+#define ICM45686_INT1_DRIVE                 0b000 //0: push-pull, 1: open drain
+
+#define ICM45686_INT1_MODE_MASK             0b10
+#define ICM45686_INT1_MODE                  0b00  //0: pulse mode, 1: latch mode
+
+#define ICM45686_INT1_POLARITY_MASK         0b0
+#define ICM45686_INT1_POLARITY              0b0   //0: active low, 1: active high
 
 //BANKS
 #define ICM45686_IMEM_SRAM   0x0000

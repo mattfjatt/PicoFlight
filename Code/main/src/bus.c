@@ -4,9 +4,9 @@ void bus_spi_init()
 {
     //Setup spi at 1 MHz
     spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
-    gpio_set_function(SPI_MISO, GPIO_FUNC_SPI);  //RX on master is MISO
-    gpio_set_function(SPI_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(SPI_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI
+    gpio_set_function(SPI0_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
+    gpio_set_function(SPI0_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(SPI0_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this
 
 
     //SPI format: 8 bits

@@ -16,12 +16,15 @@
 #define GPIO_CH_3 13
 
 //SPI-pins
-#define SPI_MOSI 3
-#define SPI_MISO 4
-#define SPI_SCK  2
+#define SPI0_MOSI 3
+#define SPI0_MISO 4
+#define SPI0_SCK  2
 
 #define ICM20948_CS 5
 #define ICM45686_CS 6
+
+//IMU interrupt pins
+#define ICM45686_INT1_PIN 14
 
 //Clock-pin
 //gpios connected to the clock system are 21 23 24 25
