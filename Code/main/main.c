@@ -7,6 +7,7 @@
 #include "headers/bus.h"
 #include "headers/mpu6050.h"
 #include "headers/mmc5603.h"
+#include "headers/mmc5983.h"
 #include "headers/icm20948.h"
 #include "headers/icm45686.h"
 #include "headers/linalg.h"
@@ -63,6 +64,9 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
     bus_spi_init();
     bus_i2c_init();
     sleep_ms(500);
+    mmc5983_init();
+
+
     icm45686_init();
     //icm20948_init();
 

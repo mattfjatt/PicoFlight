@@ -24,7 +24,7 @@ void bus_spi_init()
     //SPI format: 8 bits
     //CPOL: Clock Polarity, CPOL = 0 means active high. 
     //CPHA: Clock Phase, this indicates where the data is sampled. CPHA = 0 means the data is sampled/latched on the rising edge
-    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    spi_set_format(spi1, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 }
 
 void bus_i2c_init()
