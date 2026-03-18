@@ -17,7 +17,6 @@ void mmc5603_setup()
     //by setting the Auto_SR_en bit in internal control 0
     i2c_write_register(i2c1, MMC5603_I2C_ADDRESS, MMC5603_INTERNAL_CONTROL_0, (1 << MMC_5603_AUTO_SR_EN));
 
-
     //Set the bandwidth selection bits in internal control 1. The default measurement time is 6.6ms which caps out at 150 Hz
     //Setting BW1 = 1 and BW0 = 0 allows up to 255Hz ODR
     i2c_write_register(i2c1, MMC5603_I2C_ADDRESS, MMC5603_INTERNAL_CONTROL_1, (1 << MMC5603_BW1) | (0 << MMC5603_BW0));

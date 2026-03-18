@@ -10,7 +10,18 @@
 #include "headers/optimizer.h"
 
 void mmc5983_init();
+
 void mmc5983_setup();
+
+void mmc5983_get_mag_reading(Sample* si);
+
+void mmc5983_int_callback(uint gpio, uint32_t events);
+
+int mmc5983_mag_measurement_ready();
+
+int mmc5983_temp_measurement_ready();
+
+void mmc5983_clear_mag_interrupt();
 
 void mmc5983_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
 
@@ -19,6 +30,10 @@ void mmc5983_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* 
 void mmc5983_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
 //REGISTERS
+
+//The registers in this sensor must be written in one go, ie if you need to update bits corresponding to
+//different configs in the same register, collect all changes in one write, otherwise the read-modify-write logic will be messed
+//up due to the register being non-static.
 
 #define MMC5983_XOUT0                   0x0
 #define MMC5983_XOUT1                   0x1
@@ -98,8 +113,8 @@ void mmc5983_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* r
 #define MMC5983_CMM_FREQ_200_HZ         (1 << 2 | 1 << 1 | 0 << 0) //BW = 01
 #define MMC5983_CMM_FREQ_1000_HZ        (1 << 2 | 1 << 1 | 1 << 0) //BW = 11
 
-#define MMC5983_EN_MASK                 (1 << 3)
-#define MMC5983_EN                      (1 << 3) //Writing 1 will enable CMM. In order to enter CMM, CM_FREQ[2:0] cannot be 000
+#define MMC5983_CMM_EN_MASK             (1 << 3)
+#define MMC5983_CMM_EN                  (1 << 3) //Writing 1 will enable CMM. In order to enter CMM, CM_FREQ[2:0] cannot be 000
 
 #define MMC5983_PRD_SET_MASK            (1 << 6 | 1 << 5 | 1 << 4) //Determines how often the chip will do a set operation (per measurement?)
 #define MMC5983_PRD_SET_1               (0 << 6 | 0 << 5 | 0 << 4)
