@@ -15,6 +15,8 @@ void bus_spi_init()
     spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 
     //Setup spi1, this bus is for other spi-based sensors (barometer and magnetometer at the moment)
+    //BMP388 supports SPI up to 10 MHz
+    //MMC5983 supports SPI up to 10 MHz
     spi_init(spi1, 1000*1000);
     gpio_set_function(SPI1_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
     gpio_set_function(SPI1_SCK, GPIO_FUNC_SPI);

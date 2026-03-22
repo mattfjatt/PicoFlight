@@ -45,12 +45,13 @@
 #define ICM20948_CS 5
 #define ICM45686_CS 6
 #define MMC5983_CS  13
-#define BMP388_CS
+#define BMP388_CS   16
 
 
 //Sensor interrupt pins
-#define ICM45686_INT1_PIN 14
+#define ICM45686_INT_PIN 14
 #define MMC5983_INT_PIN 15
+#define BMP388_INT_PIN 17
 
 //Clock-pin
 //gpios connected to the clock system are 21 23 24 25

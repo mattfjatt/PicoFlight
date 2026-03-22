@@ -31,9 +31,9 @@ void icm45686_init()
     //Int1 setup
     icm45686_configure_int1_pin();
 
-    gpio_init(ICM45686_INT1_PIN);
-    gpio_set_dir(ICM45686_INT1_PIN, GPIO_IN); //high impedance mode
-    gpio_set_irq_enabled_with_callback(ICM45686_INT1_PIN, GPIO_IRQ_EDGE_RISE, true, icm45686_int1_callback);
+    gpio_init(ICM45686_INT_PIN);
+    gpio_set_dir(ICM45686_INT_PIN, GPIO_IN); //high impedance mode
+    gpio_set_irq_enabled_with_callback(ICM45686_INT_PIN, GPIO_IRQ_EDGE_RISE, true, icm45686_int1_callback);
 
     icm45686_set_rp2350_clock_out();
     sleep_ms(200); //Let clock stabilize
