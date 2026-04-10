@@ -26,7 +26,7 @@ int main()
 {
     stdio_init_all();
     sleep_ms(7000);
-    Main_init(&controller_data, &receiver_data, &estimator_data);
+    //Main_init(&controller_data, &receiver_data, &estimator_data);
     
     int N = 3;
     double eul[3] = {0};

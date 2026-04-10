@@ -67,4 +67,68 @@
 #define I2C1_SDA 26
 #define I2C1_SCL 27
 
+//For the new PCB a new pin-map is required. 
+typedef enum{
+    //Sensor pins
+    PF_ICM45686_0_INT = 28,
+    PF_ICM45686_1_INT = 29,
+    PF_ICM45686_2_INT = 30,
+    PF_ICM45686_0_CS = 24,
+    PF_ICM45686_1_CS = 25,
+    PF_ICM45686_2_CS = 27,
+    PF_ICM45686_CLOCK = 21,
+    
+    PF_BMP388_INT = 23,
+    PF_BMP388_CS = 22,
+
+    PF_MMC5983_INT = 31,
+    PF_MMC5983_CS = 32,
+
+    PF_POWER_SRC = 47, //Monitors output of TPS2121 chip
+
+    //Bus pins
+    PF_SPI0_MOSI = 19,
+    PF_SPI0_MISO = 20,
+    PF_SPI0_SCK = 18,
+
+    PF_SPI1_MOSI = 11,
+    PF_SPI1_MISO = 8,
+    PF_SPI1_SCK = 14,
+
+    //LEDs, active low
+    PF_LED0 = 3,
+    PF_LED1 = 2,
+
+    //IO-headers
+    PF_PIN_0 = 1,
+    PF_PIN_1 = 0,
+    PF_PIN_2 = 4,
+    PF_PIN_3 = 5,
+    PF_PIN_4 = 6,
+    PF_PIN_5 = 7,
+    PF_PIN_6 = 10,
+    PF_PIN_7 = 9,
+    PF_PIN_8 = 12,
+    PF_PIN_9 = 13,
+    PF_PIN_10 = 16,
+    PF_PIN_11 = 15,
+    PF_PIN_12 = 17,
+    PF_PIN_13 = 26,
+    PF_PIN_14 = 45,
+    PF_PIN_15 = 46,
+    PF_PIN_16 = 42,
+    PF_PIN_17 = 41,
+    PF_PIN_18 = 44,
+    PF_PIN_19 = 43,
+    PF_PIN_20 = 39,
+    PF_PIN_21 = 37,
+    PF_PIN_22 = 35,
+    PF_PIN_23 = 40,
+    PF_PIN_24 = 38,
+    PF_PIN_25 = 36,
+    PF_PIN_26 = 34,
+    PF_PIN_27 = 33
+
+}picoflight_pins_t;
+
 #endif

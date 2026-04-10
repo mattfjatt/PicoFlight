@@ -56,16 +56,16 @@ void bmp388_setup()
     float temp;
     float pres;
 
-    while(1){
-        // bmp388_get_compensated_pressure_temp(&pres, &temp, &bmp388_comp);
-        // PRINTNUM("Pres = %f\n", pres);
-        if(data_ready){
-            data_ready = 0;
-            PRINTNUM("interrupts = %u\n", int_counter);
-        }
+    // while(1){
+    //     // bmp388_get_compensated_pressure_temp(&pres, &temp, &bmp388_comp);
+    //     // PRINTNUM("Pres = %f\n", pres);
+    //     if(data_ready){
+    //         data_ready = 0;
+    //         PRINTNUM("interrupts = %u\n", int_counter);
+    //     }
 
-        sleep_ms(1000);
-    }
+    //     sleep_ms(1000);
+    // }
 }
 
 void bmp388_int_callback(uint gpio, uint32_t events)
