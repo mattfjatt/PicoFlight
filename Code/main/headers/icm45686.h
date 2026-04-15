@@ -8,19 +8,57 @@
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
 
+typedef struct imu_pins{
+    uint8_t cs_pin;
+    uint8_t int_pin;
+}imu_pins;
+
+typedef struct imu_config{
+    uint8_t gyro_fs;
+    uint8_t accel_fs;
+    uint8_t gyro_odr;
+    uint8_t accel_odr;
+    uint8_t gyro_pwr_mode;
+    uint8_t accel_pwr_mode;
+    uint8_t data_endianness; //Big or Little
+    uint8_t clock_source; //Internal or external
+    uint8_t data_ready_int;
+    //FIFO config
+
+}imu_config;
+
+typedef struct imu_data{
+    //New data available flag if data-ready interrupt is enabled. Data getter function must set this flag back to zero
+    double gyro_data[3];
+    double accel_data[3];
+    //FIFO-stuff(buffer)
+}imu_data;
+
+typedef struct imu{
+    imu_pins imu_pins;
+    imu_config imu_cfg;
+    imu_data imu_data;
+}imu;
+
+extern imu imu0;
+extern imu imu1;
+extern imu imu2;
+
 void icm45686_init();
 
-void icm45686_get_imu_data(double acc[3], double gyr[3]);
+void icm45686_get_imu_data(imu* imu_dev);
 
-void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs);
+void icm45686_set_config(const imu* imu);
 
-void icm45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr);
+void icm45686_set_measurement_ranges(const imu* imu_dev);
 
-void icm45686_set_power_modes(uint8_t gyro_pwr_mode, uint8_t accel_pwr_mode);
+void icm45686_set_odr_frequency(const imu* imu_dev);
 
-void icm45686_set_data_endianness();
+void icm45686_set_power_modes(const imu* imu_dev);
 
-void icm45686_set_clock_source();
+void icm45686_set_data_endianness(const imu* imu_dev);
+
+void icm45686_set_external_clock_source(const imu* imu_dev);
 
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
@@ -32,15 +70,27 @@ void icm45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* 
 
 void icm45686_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin);
 
-void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value); //See ICM45686 datasheet section 14 "Indirect register access" for more info
+void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value, uint8_t cs_pin); //See ICM45686 datasheet section 14 "Indirect register access" for more info
 
-void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value);
+void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t cs_pin);
 
-void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
+void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask, uint8_t cs_pin);
 
-void icm45686_configure_int1_pin();
+void icm45686_configure_int1_pin(const imu* imu_dev);
+
+void icm45686_set_interrupt_pin_and_callback(const imu* imu_dev, gpio_irq_callback_t callback);
+
+void icm45686_set_cs_pin(const imu* imu_dev);
 
 void icm45686_int1_callback(uint gpio, uint32_t events);
+
+//Some configs 
+#define ICM45686_USE_BIG_ENDIAN     0x20
+#define ICM45686_USE_LITTLE_ENDIAN  0x21
+
+#define ICM45686_USE_DATA_READY_INT 0x22
+#define ICM45686_USE_EXT_CLKIN      0x23
+
 
 //Registers
 #define ICM45686_ACCEL_DATA_X1 0x00

@@ -26,7 +26,7 @@ int main()
 {
     stdio_init_all();
     sleep_ms(7000);
-    //Main_init(&controller_data, &receiver_data, &estimator_data);
+    Main_init(&controller_data, &receiver_data, &estimator_data);
     
     int N = 3;
     double eul[3] = {0};
@@ -63,19 +63,12 @@ int main()
 void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 {
     bus_spi_init();
-    bus_i2c_init();
     sleep_ms(500);
 
-
-    bmp388_init();
-    //mmc5983_init(); May have a blocking while-loop!!
-
-
+    //bmp388_init();
+    //mmc5983_init(); //May have a blocking while-loop!!
     icm45686_init();
-    //icm20948_init();
 
-    //mmc5603_init();
-    //mpu6050_init();
     //servo_init();
     //receiver_init(rec_data);
     //controller_init(cont_data);

@@ -216,5 +216,9 @@ void estimator_get_imu_data(estStruct* est_data)
     // mpu6050_get_imu_data(est_data->a, est_data->w);
     // mpu6050_six_point_accel_correction(est_data->a);
     // icm20948_get_imu_data(est_data->a, est_data->w);
-    icm45686_get_imu_data(est_data->a, est_data->w);
+
+    //hacky solution to get the new icm module to work wih the estimator
+    icm45686_get_imu_data(&imu0);
+    linalg_veccopy(3, imu0.imu_data.accel_data, est_data->a);
+    linalg_veccopy(3, imu0.imu_data.gyro_data, est_data->w);
 }

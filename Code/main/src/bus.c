@@ -4,9 +4,9 @@ void bus_spi_init()
 {
     //Setup spi0, this bus is exclusively for the IMUs
     spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
-    gpio_set_function(SPI0_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
-    gpio_set_function(SPI0_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(SPI0_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this
+    gpio_set_function(PF_SPI0_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
+    gpio_set_function(PF_SPI0_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(PF_SPI0_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this
 
 
     //SPI format: 8 bits
@@ -18,9 +18,9 @@ void bus_spi_init()
     //BMP388 supports SPI up to 10 MHz
     //MMC5983 supports SPI up to 10 MHz
     spi_init(spi1, 1000*1000);
-    gpio_set_function(SPI1_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
-    gpio_set_function(SPI1_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(SPI1_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this
+    gpio_set_function(PF_SPI1_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
+    gpio_set_function(PF_SPI1_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(PF_SPI1_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this
 
 
     spi_set_format(spi1, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
@@ -28,18 +28,20 @@ void bus_spi_init()
 
 void bus_i2c_init()
 {
+    //I2C not used by PFPCB board
+    
     //Setup i2c0 at 400kHz, currently used by MPU6050
-    i2c_init(i2c0, 400 * 1000); //i2c0 = i2c_default
-    gpio_set_function(I2C0_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C0_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C0_SDA);
-    gpio_pull_up(I2C0_SCL);
+    // i2c_init(i2c0, 400 * 1000); //i2c0 = i2c_default
+    // gpio_set_function(I2C0_SDA, GPIO_FUNC_I2C);
+    // gpio_set_function(I2C0_SCL, GPIO_FUNC_I2C);
+    // gpio_pull_up(I2C0_SDA);
+    // gpio_pull_up(I2C0_SCL);
 
 
-    //Setup i2c1 at 400kHz, currently used by MMC5603
-    i2c_init(i2c1, 400 * 1000); //Fast mode plus at 1MHz is the fastest supported mode on the RP2350
-    gpio_set_function(I2C1_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C1_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C1_SDA);
-    gpio_pull_up(I2C1_SCL);
+    // //Setup i2c1 at 400kHz, currently used by MMC5603
+    // i2c_init(i2c1, 400 * 1000); //Fast mode plus at 1MHz is the fastest supported mode on the RP2350
+    // gpio_set_function(I2C1_SDA, GPIO_FUNC_I2C);
+    // gpio_set_function(I2C1_SCL, GPIO_FUNC_I2C);
+    // gpio_pull_up(I2C1_SDA);
+    // gpio_pull_up(I2C1_SCL);
 }
