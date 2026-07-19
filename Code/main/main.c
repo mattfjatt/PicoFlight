@@ -67,6 +67,7 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 
     //bmp388_init();
     //mmc5983_init(); //May have a blocking while-loop!!
+    // icm45686_TEST_FIFO();
     icm45686_init();
 
     //servo_init();

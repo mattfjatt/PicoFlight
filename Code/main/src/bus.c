@@ -3,7 +3,7 @@
 void bus_spi_init()
 {
     //Setup spi0, this bus is exclusively for the IMUs
-    spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
+    spi_init(spi0, 20000*1000); //Max seems to be 37.5 Mhz
     gpio_set_function(PF_SPI0_MISO, GPIO_FUNC_SPI);  //RX on master is MISO, SDO from ICM goes to this
     gpio_set_function(PF_SPI0_SCK, GPIO_FUNC_SPI);
     gpio_set_function(PF_SPI0_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI, SDI from ICM goes to this

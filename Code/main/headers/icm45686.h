@@ -7,11 +7,73 @@
 #include "headers/linalg.h"
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
+#include "string.h"
+
+typedef struct imu_fifo_20bit{
+    uint8_t accel_x_upper, accel_x_middle;
+    uint8_t accel_y_upper, accel_y_middle;
+    uint8_t accel_z_upper, accel_z_middle;
+
+    uint8_t gyro_x_upper, gyro_x_middle;
+    uint8_t gyro_y_upper, gyro_y_middle;
+    uint8_t gyro_z_upper, gyro_z_middle;
+
+    uint8_t temp_upper, temp_lower;
+
+    uint8_t timestamp_upper, timestamp_lower;
+
+    //Contains lower 4 bits for 19 bit accel. LSB is always 0
+    uint8_t accel_x_lower;
+    uint8_t accel_y_lower;
+    uint8_t accel_z_lower;
+
+    //Contains lower 4 bits for 20 bit gyro.
+    uint8_t gyro_x_lower;
+    uint8_t gyro_y_lower;
+    uint8_t gyro_z_lower;
+
+}imu_fifo_20bit;
 
 typedef struct imu_pins{
     uint8_t cs_pin;
     uint8_t int_pin;
 }imu_pins;
+
+typedef struct fifo_config{
+    //"Enable/Disables" are used as booleans, others are used as full bytes.
+
+    //No fifo setup will be performed unless this is true.
+    uint8_t fifo_enabled;
+
+    //FIFO_CONFIG0
+    uint8_t fifo_mode;
+    uint8_t fifo_depth;
+
+    //FIFO_CONFIG1_0
+    uint8_t fifo_wm_th_7_0;
+
+    //FIFO_CONFIG1_1
+    uint8_t fifo_wm_th_15_8;
+
+    //FIFO_CONFIG2
+    uint8_t fifo_flush;
+    uint8_t fifo_wr_wm_gt_th;
+
+    //FIFO_CONFIG3
+    uint8_t fifo_es1_en;
+    uint8_t fifo_es0_en;
+    uint8_t fifo_hires_en;
+    uint8_t fifo_gyro_en;
+    uint8_t fifo_accel_en;
+    uint8_t fifo_if_en;
+
+    //FIFO_CONFIG4
+    uint8_t fifo_comp_nc_flow_cfg;
+    uint8_t fifo_comp_en;
+    uint8_t fifo_tmst_fsync_en;
+    uint8_t fifo_es0_6b_9b;
+
+}fifo_config;
 
 typedef struct imu_config{
     uint8_t gyro_fs;
@@ -23,7 +85,7 @@ typedef struct imu_config{
     uint8_t data_endianness; //Big or Little
     uint8_t clock_source; //Internal or external
     uint8_t data_ready_int;
-    //FIFO config
+    fifo_config fifo_cfg;
 
 }imu_config;
 
@@ -31,7 +93,7 @@ typedef struct imu_data{
     //New data available flag if data-ready interrupt is enabled. Data getter function must set this flag back to zero
     double gyro_data[3];
     double accel_data[3];
-    //FIFO-stuff(buffer)
+    imu_fifo_20bit fifo_array[0x06]; //<-- Length of array tied to ICM45686_FIFO_WM_TH_7_0/15_8?
 }imu_data;
 
 typedef struct imu{
@@ -44,7 +106,15 @@ extern imu imu0;
 extern imu imu1;
 extern imu imu2;
 
+void icm45686_TEST_FIFO();
+
 void icm45686_init();
+
+void icm45686_setup_fifo(const imu* imu_dev);
+
+uint16_t icm45686_get_fifo_packet_count(const imu* imu_dev); //Returns amount of data frames ready to be read
+
+void icm45686_parse_20bit_fifo_frame(imu_fifo_20bit* parsed_frame, uint8_t raw_frame[19]);
 
 void icm45686_get_imu_data(imu* imu_dev);
 
@@ -64,7 +134,7 @@ void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
 void icm45686_set_rp2350_clock_out();
 
-void icm45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
+void icm45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint32_t n_bytes, uint8_t cs_pin);
 
 void icm45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
@@ -93,46 +163,50 @@ void icm45686_int1_callback(uint gpio, uint32_t events);
 
 
 //Registers
-#define ICM45686_ACCEL_DATA_X1 0x00
+#define ICM45686_ACCEL_DATA_X1  0x00
 
 //Config registers that may be relevant
-#define ICM45686_PWR_MGMT0 0x10
+#define ICM45686_PWR_MGMT0      0x10
 
 //The slew rate for int1 can be set in DRIVE_CONFIG2
-#define ICM45686_INT1_CONFIG0 0x16 //Sets int1 source
-#define ICM45686_INT1_CONFIG1 0x17 //Not relevant
-#define ICM45686_INT1_CONFIG2 0x18 //Configures int1 pin like polarity and drive
+#define ICM45686_INT1_CONFIG0   0x16 //Sets int1 source
+#define ICM45686_INT1_CONFIG1   0x17 //Not relevant
+#define ICM45686_INT1_CONFIG2   0x18 //Configures int1 pin like polarity and drive
 
-#define ICM45686_INT1_STATUS0 0x19 //Might have to read these regs to let the IMU
-#define ICM45686_INT1_STATUS1 0x1A //know the interrupt has been acknowledged
+#define ICM45686_INT1_STATUS0   0x19 //Might have to read these regs to let the IMU
+#define ICM45686_INT1_STATUS1   0x1A //know the interrupt has been acknowledged
 
 
-#define ICM45686_ACCEL_CONFIG0 0x1B //FS and ODR selection
-#define ICM45686_GYRO_CONFIG0 0x1C //FS and ODR selection
+#define ICM45686_ACCEL_CONFIG0  0x1B //FS and ODR selection
+#define ICM45686_GYRO_CONFIG0   0x1C //FS and ODR selection
 
-#define ICM45686_FIFO_CONFIG0 0x1D
+#define ICM45686_FIFO_COUNT_0   0x12 //High bits
+#define ICM45686_FIFO_COUNT_1   0x13 //Low bits
+#define ICM45686_FIFO_DATA      0x14 //FIFO data port
+
+#define ICM45686_FIFO_CONFIG0   0x1D
 #define ICM45686_FIFO_CONFIG1_0 0x1E
 #define ICM45686_FIFO_CONFIG1_1 0x1F
-#define ICM45686_FIFO_CONFIG2 0x20
-#define ICM45686_FIFO_CONFIG3 0x21
-#define ICM45686_FIFO_CONFIG4 0x22
+#define ICM45686_FIFO_CONFIG2   0x20
+#define ICM45686_FIFO_CONFIG3   0x21
+#define ICM45686_FIFO_CONFIG4   0x22
 
 #define ICM45686_ODR_DECIMATE_CONFIG 0x28
 
-#define ICM45686_INT2_CONFIG0 0x56
-#define ICM45686_INT2_CONFIG1 0x57
-#define ICM45686_INT2_CONFIG2 0x58
+#define ICM45686_INT2_CONFIG0   0x56
+#define ICM45686_INT2_CONFIG1   0x57
+#define ICM45686_INT2_CONFIG2   0x58
 
-#define ICM45686_INT2_STATUS0 0x59
-#define ICM45686_INT2_STATUS1 0x5A
+#define ICM45686_INT2_STATUS0   0x59
+#define ICM45686_INT2_STATUS1   0x5A
 
-#define ICM45686_WHO_AM_I 0x72
+#define ICM45686_WHO_AM_I       0x72
 
 #define ICM45686_IREG_ADDR_15_8 0x7C
 #define ICM45686_IREG_ADDR_7_0  0x7D
 #define ICM45686_IREG_DATA      0x7E
 
-#define ICM45686_SREG_CTRL 0x67
+#define ICM45686_SREG_CTRL      0x67
 
 //Regs for clock source setup
 #define ICM45686_IOC_PAD_SCENARIO_OVRD  0x31
@@ -231,8 +305,76 @@ void icm45686_int1_callback(uint gpio, uint32_t events);
 #define ICM45686_INT1_MODE_MASK             0b10
 #define ICM45686_INT1_MODE                  0b00  //0: pulse mode, 1: latch mode
 
-#define ICM45686_INT1_POLARITY_MASK         0b0
-#define ICM45686_INT1_POLARITY              0b0   //0: active low, 1: active high
+#define ICM45686_INT1_POLARITY_MASK         0b1
+#define ICM45686_INT1_POLARITY              0b1   //0: active low, 1: active high
+
+#define ICM45686_INT1_STATUS_EN_FIFO_THS_MASK (1 << 1)
+#define ICM45686_INT1_STATUS_EN_FIFO_THS      (1 << 1)
+
+//FIFO CONFIG.
+//Not all FIFO config is contained in the "FIFO" prefixed registers. The remaining regs with bits are:
+//INT1_CONFIG0: INT1_STATUS_EN_FIFO_THS. Enables FIFO treshold interrupt (basically the data ready int for FIFO)
+//SMC_CONTROL_0(IPREG_TOP1): TMST_en. Timestamp enable for FIFO 
+
+//FIFO_CONFIG_0
+#define ICM45686_FIFO_MODE_MASK       ((1 << 7) | (1 << 6))
+#define ICM45686_FIFO_MODE            ((0 << 7) | (1 << 6)) //00: Bypass. 01: Stream. 10: Stop on full. 11: Reserved
+
+#define ICM45686_FIFO_DEPTH_MASK      ((1 << 5) | (1 << 4) | (1 << 3) | (1 << 2) | (1 << 1) | (1 << 0))
+#define ICM45686_FIFO_DEPTH_2K        ((0 << 5) | (0 << 4) | (0 << 3) | (1 << 2) | (1 << 1) | (1 << 0)) //000111:2kB depth. 011111: 8kB depth, must disaple APEX
+#define ICM45686_FIFO_DEPTH_8K        ((0 << 5) | (1 << 4) | (1 << 3) | (1 << 2) | (1 << 1) | (1 << 0))
+
+
+//The following two registers set the FIFO watermark threshold value.
+//Settig both to zero will disable the watermark.
+//FIFO_CONFIG1_0
+#define ICM45686_FIFO_WM_TH_7_0_MASK    0xFF
+#define ICM45686_FIFO_WM_TH_7_0         0x06 //0xA0, value from user guide
+
+//FIFO_CONFIG1_1
+#define ICM45686_FIFO_WM_TH_15_8_MASK   0xFF 
+#define ICM45686_FIFO_WM_TH_15_8        0x00   //Default is 0
+
+//FIFO_CONFIG2
+#define ICM45686_FIFO_FLUSH_MASK       (1 << 7)
+#define ICM45686_FIFO_FLUSH            (1 << 7) //Flushing the FIFO, pointers and control logic resets (not sure what that means)
+
+#define ICM45686_FIFO_WR_WM_GT_TH_MASK (1 << 3) //Condition for generating interrupt. 
+#define ICM45686_FIFO_WR_WM_GT_TH      (1 << 3) //0: Int when FIFO data count is EQUAL to watermark. 1: Same but EQUAL or GREATER 
+
+//FIFO_CONFIG3
+#define ICM45686_FIFO_ES1_EN_MASK      (1 << 5) //Enable External Sensor 1 data insertion into FIFO frame 
+#define ICM45686_FIFO_ES1_EN           (0 << 5)
+
+#define ICM45686_FIFO_ES0_EN_MASK      (1 << 4) //Enable External Sensor 0 data insertion into FIFO frame 
+#define ICM45686_FIFO_ES0_EN           (0 << 4)
+
+#define ICM45686_FIFO_HIRES_EN_MASK    (1 << 3) //Enable high resolution accel and gyro data in FIFO frame
+#define ICM45686_FIFO_HIRES_EN         (1 << 3)
+
+#define ICM45686_FIFO_GYRO_EN_MASK     (1 << 2) //Enable insertion of gyro data in FIFO frame
+#define ICM45686_FIFO_GYRO_EN          (1 << 2)
+
+#define ICM45686_FIFO_ACCEL_EN_MASK     (1 << 1) //Enable insertion of accel data in FIFO frame
+#define ICM45686_FIFO_ACCEL_EN          (1 << 1)
+
+#define ICM45686_FIFO_IF_EN_MASK        (1 << 0) //Not sure what this does but should be enabled when FIFO is enabled (not in bypass mode)
+#define ICM45686_FIFO_IF_EN             (1 << 0) //To prevent power drain, FIFO_IF_EN should be disabled if bypass mode is used
+
+
+//FIFO_CONFIG4
+#define ICM45686_COMP_NC_FLOW_CFG_MASK ((1 << 5) | (1 << 4) | (1 << 3))
+#define ICM45686_COMP_NC_FLOW_CFG      ((0 << 5) | (0 << 4) | (0 << 3)) //000: Non-compressed packet-flow is disabled
+
+#define ICM45686_COMP_EN_MASK           (1 << 2)
+#define ICM45686_COMP_EN                (0 << 2) //0: FIFO compression is disabled
+
+#define ICM45686_FIFO_TMST_FSYNC_EN_MASK    (1 << 1) //Enable timestamp insertion in FIFO frame 
+#define ICM45686_FIFO_TMST_FSYNC_EN         (1 << 1) //1: Inserts timestamp
+
+#define ICM45686_FIFO_ES0_6B_9B_MASK    (1 << 0) //Number of bytes provided by external. Not relevant
+#define ICM45686_FIFO_ES0_6B_9B         (0 << 0) 
+
 
 //BANKS
 #define ICM45686_IMEM_SRAM   0x0000
@@ -244,5 +386,8 @@ void icm45686_int1_callback(uint gpio, uint32_t events);
 
 //IREGS bits and masks
 #define ICM45686_SREG_DATA_ENDIAN_SEL 1
+
+#define ICM45686_TMST_EN_MASK  (1 << 0)
+#define ICM45686_TMST_EN       (1 << 0)
 
 #endif
