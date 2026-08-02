@@ -9,6 +9,80 @@
 #include "hardware/clocks.h"
 #include "string.h"
 
+typedef enum error_code_t{
+    no_error,
+    gyro_fs_invalid,
+    accel_fs_invalid,
+    gyro_odr_invalid,
+    accel_odr_invalid,
+    gyro_power_mode_invalid,
+    accel_power_mode_invalid,
+    endian_invalid,
+    clock_source_invalid,
+    main_imu_mode_invalid,
+    fifo_frame_invalid,
+    fifo_buffer_overflow,
+    pin_invalid
+}error_code_t;
+
+typedef enum imu_mode_t{
+    imu_polling = 0, //The most basic mode where you poll the data registers whenever
+    imu_data_ready = 1, //An interrupt is fired when new data is available
+    imu_fifo = 2 //An interrupt is fired when the FIFO buffer is ready
+}imu_mode_t;
+
+typedef enum clock_source_t{
+    use_internal_clock = 0,
+    use_external_clock = 1
+}clock_source_t;
+
+typedef enum data_endian_t{
+    use_big_endian,
+    use_little_endian
+}data_endian_t;
+
+typedef enum accel_measurement_range_t{
+    accel_2g,
+    accel_4g,
+    accel_8g,
+    accel_16g,
+    accel_32g
+}accel_measurement_range_t;
+
+typedef enum gyro_measurement_range_t{
+    gyro_15dps,
+    gyro_31dps,
+    gyro_62dps,
+    gyro_125dps,
+    gyro_250dps,
+    gyro_500dps,
+    gyro_1000dps,
+    gyro_2000dps,
+    gyro_4000dps
+}gyro_measurement_range_t;
+
+typedef enum imu_odr_t{
+    odr_0k8,
+    odr_1k6,
+    odr_3k2,
+    odr_6k4
+}imu_odr_t;
+
+typedef enum sensor_power_mode_t{
+    power_off,
+    power_standby, //No standby mode for the accelerometer
+    power_low_noise,
+    power_low_power
+}sensor_power_mode_t;
+
+typedef enum fifo_frame_contents_t{
+    fifo_accel_only_8,
+    fifo_gyro_only_8,
+    fifo_accel_gyro_16,
+    fifo_accel_gyro_hires_20
+}fifo_frame_contents_t;
+
+
 typedef struct imu_fifo_20bit{
     uint8_t accel_x_upper, accel_x_middle;
     uint8_t accel_y_upper, accel_y_middle;
@@ -40,53 +114,59 @@ typedef struct imu_pins{
 }imu_pins;
 
 typedef struct fifo_config{
-    //"Enable/Disables" are used as booleans, others are used as full bytes.
+    fifo_frame_contents_t frame_contents;
+    
+    // //"Enable/Disables" are used as booleans, others are used as full bytes.
 
-    //No fifo setup will be performed unless this is true.
-    uint8_t fifo_enabled;
+    // //No fifo setup will be performed unless this is true.
+    // uint8_t fifo_enabled;
 
-    //FIFO_CONFIG0
-    uint8_t fifo_mode;
-    uint8_t fifo_depth;
+    // //FIFO_CONFIG0
+    // uint8_t fifo_mode;
+    // uint8_t fifo_depth;
 
-    //FIFO_CONFIG1_0
-    uint8_t fifo_wm_th_7_0;
+    // //FIFO_CONFIG1_0
+    // uint8_t fifo_wm_th_7_0;
 
-    //FIFO_CONFIG1_1
-    uint8_t fifo_wm_th_15_8;
+    // //FIFO_CONFIG1_1
+    // uint8_t fifo_wm_th_15_8;
 
-    //FIFO_CONFIG2
-    uint8_t fifo_flush;
-    uint8_t fifo_wr_wm_gt_th;
+    // //FIFO_CONFIG2
+    // uint8_t fifo_flush;
+    // uint8_t fifo_wr_wm_gt_th;
 
-    //FIFO_CONFIG3
-    uint8_t fifo_es1_en;
-    uint8_t fifo_es0_en;
-    uint8_t fifo_hires_en;
-    uint8_t fifo_gyro_en;
-    uint8_t fifo_accel_en;
-    uint8_t fifo_if_en;
+    // //FIFO_CONFIG3
+    // uint8_t fifo_es1_en;
+    // uint8_t fifo_es0_en;
+    // uint8_t fifo_hires_en;
+    // uint8_t fifo_gyro_en;
+    // uint8_t fifo_accel_en;
+    // uint8_t fifo_if_en;
 
-    //FIFO_CONFIG4
-    uint8_t fifo_comp_nc_flow_cfg;
-    uint8_t fifo_comp_en;
-    uint8_t fifo_tmst_fsync_en;
-    uint8_t fifo_es0_6b_9b;
+    // //FIFO_CONFIG4
+    // uint8_t fifo_comp_nc_flow_cfg;
+    // uint8_t fifo_comp_en;
+    // uint8_t fifo_tmst_fsync_en;
+    // uint8_t fifo_es0_6b_9b;
 
 }fifo_config;
 
 typedef struct imu_config{
-    uint8_t gyro_fs;
-    uint8_t accel_fs;
-    uint8_t gyro_odr;
-    uint8_t accel_odr;
-    uint8_t gyro_pwr_mode;
-    uint8_t accel_pwr_mode;
-    uint8_t data_endianness; //Big or Little
-    uint8_t clock_source; //Internal or external
+    gyro_measurement_range_t gyro_fs;
+    accel_measurement_range_t accel_fs;
+    double gyro_sensitivity;// = 8.2;
+    double accel_sensitivity;// = 1024.0;
+    imu_odr_t gyro_odr;
+    imu_odr_t accel_odr;
+    sensor_power_mode_t gyro_pwr_mode;
+    sensor_power_mode_t accel_pwr_mode;
+    data_endian_t data_endianness; //Big or Little
+    clock_source_t clock_source; //Internal or external
     uint8_t data_ready_int;
-    fifo_config fifo_cfg;
-
+    // fifo_config fifo_cfg;
+    imu_mode_t mode;
+    fifo_frame_contents_t fifo_frame_contents;
+    uint32_t fifo_watermark_threshold;
 }imu_config;
 
 typedef struct imu_data{
@@ -106,11 +186,13 @@ extern imu imu0;
 extern imu imu1;
 extern imu imu2;
 
-void icm45686_TEST_FIFO();
-
 void icm45686_init();
 
-void icm45686_setup_fifo(const imu* imu_dev);
+void icm45686_set_config_2(const imu* imu_dev);
+
+void icm45686_configure_int_for_fifo(const imu* imu_dev);
+
+void icm45686_setup_fifo(const imu* imu_dev); // Update this?
 
 uint16_t icm45686_get_fifo_packet_count(const imu* imu_dev); //Returns amount of data frames ready to be read
 
@@ -118,17 +200,37 @@ void icm45686_parse_20bit_fifo_frame(imu_fifo_20bit* parsed_frame, uint8_t raw_f
 
 void icm45686_get_imu_data(imu* imu_dev);
 
-void icm45686_set_config(const imu* imu);
+//The "configure" functions update the struct while the "set" functions write the value to the IMU
 
-void icm45686_set_measurement_ranges(const imu* imu_dev);
+imu_config get_default_config(imu_mode_t default_mode); //Returns a default config struct that can be used
 
-void icm45686_set_odr_frequency(const imu* imu_dev);
+uint16_t icm45686_configure_measurement_ranges(imu* imu_dev, const gyro_measurement_range_t gyro_range, const accel_measurement_range_t accel_range);
 
-void icm45686_set_power_modes(const imu* imu_dev);
+uint16_t icm45686_configure_odr(imu* imu_dev, const imu_odr_t gyro_odr, const imu_odr_t accel_odr);
 
-void icm45686_set_data_endianness(const imu* imu_dev);
+uint16_t icm45686_configure_power_modes(imu* imu_dev, const sensor_power_mode_t gyro_pwr_mode, const sensor_power_mode_t accel_pwr_mode);
 
-void icm45686_set_external_clock_source(const imu* imu_dev);
+uint16_t icm45686_configure_data_endianness(imu* imu_dev, const data_endian_t endian);
+
+uint16_t icm45686_configure_fifo_frame_contents_and_watermark(imu* imu_dev, fifo_frame_contents_t contents, uint16_t watermark);
+
+uint16_t icm45686_configure_clock_cource(imu* imu_dev, const clock_source_t clock_source);
+
+uint16_t icm45686_configure_main_imu_mode(imu* imu_dev, const imu_mode_t mode);
+
+uint16_t icm45686_set_pins(imu* imu_dev, const uint16_t cs_pin, const uint16_t int_pin);
+
+void icm45686_set_config(const imu* imu); //Applies all config values
+
+void icm45686_set_measurement_ranges(imu* imu_dev); // Update this
+
+void icm45686_set_odr_frequency(const imu* imu_dev); // Update this
+
+void icm45686_set_power_modes(const imu* imu_dev); // Update this
+
+void icm45686_set_data_endianness(const imu* imu_dev); // Update this
+
+void icm45686_set_external_clock_source(const imu* imu_dev); // Update this
 
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
@@ -153,6 +255,8 @@ void icm45686_set_interrupt_pin_and_callback(const imu* imu_dev, gpio_irq_callba
 void icm45686_set_cs_pin(const imu* imu_dev);
 
 void icm45686_int1_callback(uint gpio, uint32_t events);
+
+void icm45686_TEST_FIFO();
 
 //Some configs 
 #define ICM45686_USE_BIG_ENDIAN     0x20
