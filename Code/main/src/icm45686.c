@@ -67,7 +67,7 @@ void icm45686_init()
     icm45686_set_cs_pin(&imu0);
     sleep_ms(50);
 
-    icm45686_configure_default_config(&imu0, imu_data_ready);
+    icm45686_configure_default_config(&imu0, imu_fifo);
 
     // Apply the config struct
     icm45686_set_config(&imu0);
@@ -76,7 +76,16 @@ void icm45686_init()
     {
         if(imu0.imu_data.interrupt1_flag){
             imu0.imu_data.interrupt1_flag = false;
-            PRINTNUM("Counter %u\n", int1_counter);
+            //Need to empty the fifo outlet register
+            int packet_count = icm45686_get_fifo_packet_count(&imu0);
+            PRINTNUM("FIFO packet count = %d\n", packet_count);
+
+            icm45686_read_from_register(ICM45686_FIFO_DATA, test_fifo_buf_tx, test_fifo_buf_rx, 20*packet_count, imu0.imu_pins.cs_pin);
+
+            //PRINTNUM("FIFO header = %u\n", test_fifo_buf_rx[1]);
+            PRINTNUM("FIFO packet count = %d\n", icm45686_get_fifo_packet_count(&imu0));
+        
+            //PRINTNUM("Counter %u\n", int1_counter);
         }
     }
 }
@@ -139,9 +148,15 @@ uint16_t icm45686_get_fifo_packet_count(const imu *imu_dev)
     return count;
 }
 
-void icm45686_setup_fifo(const imu *imu_dev)
+void icm45686_set_fifo(const imu *imu_dev)
 {
     // A bit-setup sequence is provided in InvenSense's 45686 User Guide under section 3.5
+
+    //Get fifo watermark
+    uint16_t wm = imu_dev->imu_cfg.fifo_watermark_threshold;
+    uint8_t lower_8 = (uint8_t)(wm & 0xFF);
+    uint8_t upper_8 = (uint8_t)(wm >> 8);
+
     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG3, 0, ICM45686_FIFO_HIRES_EN_MASK |
                                                                   ICM45686_FIFO_GYRO_EN_MASK | 
                                                                   ICM45686_FIFO_ACCEL_EN_MASK |
@@ -152,9 +167,9 @@ void icm45686_setup_fifo(const imu *imu_dev)
 
     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SMC_CONTROL_0, ICM45686_TMST_EN, ICM45686_TMST_EN_MASK, imu_dev->imu_pins.cs_pin);
 
-    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_0, ICM45686_FIFO_WM_TH_7_0, ICM45686_FIFO_WM_TH_7_0_MASK, imu_dev->imu_pins.cs_pin);
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_0, lower_8, ICM45686_FIFO_WM_TH_7_0_MASK, imu_dev->imu_pins.cs_pin);
 
-    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_1, ICM45686_FIFO_WM_TH_15_8, ICM45686_FIFO_WM_TH_15_8_MASK, imu_dev->imu_pins.cs_pin);
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_1, upper_8, ICM45686_FIFO_WM_TH_15_8_MASK, imu_dev->imu_pins.cs_pin);
 
     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG2, ICM45686_FIFO_WR_WM_GT_TH, ICM45686_FIFO_WR_WM_GT_TH_MASK, imu_dev->imu_pins.cs_pin);
 
@@ -437,9 +452,6 @@ void icm45686_set_data_endianness(const imu *imu_dev)
 void icm45686_set_interrupt1(const imu* imu_dev)
 {
     //This function configures the interrupt on the icm45686
-    
-    uint8_t tx_buf[2];
-    uint8_t rx_buf[2];
 
     switch (imu_dev->imu_cfg.interrupt_type)
     {
@@ -449,15 +461,6 @@ void icm45686_set_interrupt1(const imu* imu_dev)
 
         icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, ICM45686_INT1_STATUS_EN_DRDY, ICM45686_INT1_STATUS_EN_DRDY_MASK, imu_dev->imu_pins.cs_pin); // Set data ready interrupt
         icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, ICM45686_INT1_DRIVE, ICM45686_INT1_DRIVE_MASK, imu_dev->imu_pins.cs_pin);                   // INT1 pin behavior setup
-
-        icm45686_read_from_register(ICM45686_INT1_CONFIG0, tx_buf, rx_buf, 2, imu_dev->imu_pins.cs_pin);
-        PRINTNUM("INT1_CONFIG0 = %u\n", rx_buf[1]);
-
-        icm45686_read_from_register(ICM45686_INT1_CONFIG1, tx_buf, rx_buf, 2, imu_dev->imu_pins.cs_pin);
-        PRINTNUM("INT1_CONFIG1 = %u\n", rx_buf[1]);
-
-        icm45686_read_from_register(ICM45686_INT1_CONFIG2, tx_buf, rx_buf, 2, imu_dev->imu_pins.cs_pin);
-        PRINTNUM("INT1_CONFIG2 = %u\n", rx_buf[1]);
         break;
 
     case enable_fifo_ready_interrupt:
@@ -603,7 +606,14 @@ void icm45686_set_config(const imu* imu_dev)
         break;
 
     case imu_fifo:
-        /* code */
+        icm45686_set_measurement_ranges(imu_dev);
+        icm45686_set_odr_frequency(imu_dev);
+        icm45686_set_data_endianness(imu_dev);
+        icm45686_set_clock_source(imu_dev);
+        icm45686_set_interrupt1(imu_dev);
+        icm45686_set_interrupt_pin_and_callback(imu_dev, icm45686_int1_callback);
+        icm45686_set_fifo(imu_dev);
+        icm45686_set_power_modes(imu_dev);
         break;
     
     default:
@@ -643,7 +653,7 @@ error_code_t icm45686_configure_default_config(imu* imu_dev, imu_mode_t default_
         icm45686_configure_main_imu_mode(imu_dev, imu_fifo);
         icm45686_configure_clock_cource(imu_dev, use_external_clock);
         icm45686_configure_data_endianness(imu_dev, use_big_endian);
-        icm45686_configure_odr(imu_dev, odr_1k6, odr_1k6);
+        icm45686_configure_odr(imu_dev, odr_6k4, odr_6k4);
         icm45686_configure_measurement_ranges(imu_dev, gyro_4000dps, accel_32g);
         icm45686_configure_fifo_frame_contents_and_watermark(imu_dev, fifo_accel_gyro_hires_20, 6);
         icm45686_configure_interrupt(imu_dev, enable_fifo_ready_interrupt);
@@ -834,7 +844,7 @@ error_code_t icm45686_configure_fifo_frame_contents_and_watermark(imu* imu_dev, 
     if(contents == fifo_accel_only_8 || contents == fifo_gyro_only_8 || contents == fifo_accel_gyro_16 || contents == fifo_accel_gyro_hires_20){
         imu_dev->imu_cfg.fifo_frame_contents = contents;
     }else{
-        return_code |= 1 << fifo_frame_invalid;
+        return_code = fifo_frame_invalid;
     }
 
     //Currently using a 2kB fifo buffer, the watermark must be set such that it doesn't overflow

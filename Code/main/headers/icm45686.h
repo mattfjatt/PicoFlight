@@ -171,7 +171,7 @@ typedef struct imu_config{
     // fifo_config fifo_cfg;
     imu_mode_t mode;
     fifo_frame_contents_t fifo_frame_contents;
-    uint32_t fifo_watermark_threshold;
+    uint16_t fifo_watermark_threshold;
 }imu_config;
 
 typedef struct imu_data{
@@ -195,8 +195,6 @@ extern imu imu2;
 void icm45686_init();
 
 void icm45686_configure_int_for_fifo(const imu* imu_dev);
-
-void icm45686_setup_fifo(const imu* imu_dev); // Update this?
 
 uint16_t icm45686_get_fifo_packet_count(const imu* imu_dev); //Returns amount of data frames ready to be read
 
@@ -239,6 +237,8 @@ void icm45686_set_data_endianness(const imu* imu_dev); // Update this
 void icm45686_set_clock_source(const imu* imu_dev); // Update this
 
 void icm45686_set_interrupt1(const imu* imu_dev);
+
+void icm45686_set_fifo(const imu* imu_dev);
 
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
