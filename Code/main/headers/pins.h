@@ -68,7 +68,7 @@
 #define I2C1_SCL 27
 
 //For the new PCB a new pin-map is required. 
-typedef enum{
+typedef enum picoflight_pins_t{
     //Sensor pins
     PF_ICM45686_0_INT = 28,
     PF_ICM45686_1_INT = 29,

@@ -11,18 +11,17 @@
 
 typedef enum error_code_t{
     no_error,
-    gyro_fs_invalid,
-    accel_fs_invalid,
-    gyro_odr_invalid,
-    accel_odr_invalid,
-    gyro_power_mode_invalid,
-    accel_power_mode_invalid,
+    fs_invalid,
+    odr_invalid,
+    power_mode_invalid,
     endian_invalid,
     clock_source_invalid,
     main_imu_mode_invalid,
     fifo_frame_invalid,
     fifo_buffer_overflow,
-    pin_invalid
+    pin_invalid,
+    interrupt_invalid,
+    default_config_invalid
 }error_code_t;
 
 typedef enum imu_mode_t{
@@ -82,6 +81,12 @@ typedef enum fifo_frame_contents_t{
     fifo_accel_gyro_hires_20
 }fifo_frame_contents_t;
 
+typedef enum interrupt_t{
+    enable_data_ready_interrupt,
+    enable_fifo_ready_interrupt,
+    disable_interrupt
+}interrupt_t;
+
 
 typedef struct imu_fifo_20bit{
     uint8_t accel_x_upper, accel_x_middle;
@@ -109,8 +114,8 @@ typedef struct imu_fifo_20bit{
 }imu_fifo_20bit;
 
 typedef struct imu_pins{
-    uint8_t cs_pin;
-    uint8_t int_pin;
+    picoflight_pins_t cs_pin;
+    picoflight_pins_t int_pin;
 }imu_pins;
 
 typedef struct fifo_config{
@@ -162,7 +167,7 @@ typedef struct imu_config{
     sensor_power_mode_t accel_pwr_mode;
     data_endian_t data_endianness; //Big or Little
     clock_source_t clock_source; //Internal or external
-    uint8_t data_ready_int;
+    interrupt_t interrupt_type;
     // fifo_config fifo_cfg;
     imu_mode_t mode;
     fifo_frame_contents_t fifo_frame_contents;
@@ -173,6 +178,7 @@ typedef struct imu_data{
     //New data available flag if data-ready interrupt is enabled. Data getter function must set this flag back to zero
     double gyro_data[3];
     double accel_data[3];
+    bool interrupt1_flag;
     imu_fifo_20bit fifo_array[0x06]; //<-- Length of array tied to ICM45686_FIFO_WM_TH_7_0/15_8?
 }imu_data;
 
@@ -188,8 +194,6 @@ extern imu imu2;
 
 void icm45686_init();
 
-void icm45686_set_config_2(const imu* imu_dev);
-
 void icm45686_configure_int_for_fifo(const imu* imu_dev);
 
 void icm45686_setup_fifo(const imu* imu_dev); // Update this?
@@ -202,27 +206,29 @@ void icm45686_get_imu_data(imu* imu_dev);
 
 //The "configure" functions update the struct while the "set" functions write the value to the IMU
 
-imu_config get_default_config(imu_mode_t default_mode); //Returns a default config struct that can be used
+error_code_t icm45686_configure_default_config(imu* imu_dev, imu_mode_t default_mode); //Returns a default config struct that can be used
 
-uint16_t icm45686_configure_measurement_ranges(imu* imu_dev, const gyro_measurement_range_t gyro_range, const accel_measurement_range_t accel_range);
+error_code_t icm45686_configure_measurement_ranges(imu* imu_dev, const gyro_measurement_range_t gyro_range, const accel_measurement_range_t accel_range);
 
-uint16_t icm45686_configure_odr(imu* imu_dev, const imu_odr_t gyro_odr, const imu_odr_t accel_odr);
+error_code_t icm45686_configure_odr(imu* imu_dev, const imu_odr_t gyro_odr, const imu_odr_t accel_odr);
 
-uint16_t icm45686_configure_power_modes(imu* imu_dev, const sensor_power_mode_t gyro_pwr_mode, const sensor_power_mode_t accel_pwr_mode);
+error_code_t icm45686_configure_power_modes(imu* imu_dev, const sensor_power_mode_t gyro_pwr_mode, const sensor_power_mode_t accel_pwr_mode);
 
-uint16_t icm45686_configure_data_endianness(imu* imu_dev, const data_endian_t endian);
+error_code_t icm45686_configure_data_endianness(imu* imu_dev, const data_endian_t endian);
 
-uint16_t icm45686_configure_fifo_frame_contents_and_watermark(imu* imu_dev, fifo_frame_contents_t contents, uint16_t watermark);
+error_code_t icm45686_configure_fifo_frame_contents_and_watermark(imu* imu_dev, fifo_frame_contents_t contents, uint16_t watermark);
 
-uint16_t icm45686_configure_clock_cource(imu* imu_dev, const clock_source_t clock_source);
+error_code_t icm45686_configure_clock_cource(imu* imu_dev, const clock_source_t clock_source);
 
-uint16_t icm45686_configure_main_imu_mode(imu* imu_dev, const imu_mode_t mode);
+error_code_t icm45686_configure_interrupt(imu* imu_dev, const interrupt_t interrupt);
 
-uint16_t icm45686_set_pins(imu* imu_dev, const uint16_t cs_pin, const uint16_t int_pin);
+error_code_t icm45686_configure_main_imu_mode(imu* imu_dev, const imu_mode_t mode);
 
-void icm45686_set_config(const imu* imu); //Applies all config values
+error_code_t icm45686_configure_pins(imu* imu_dev, const picoflight_pins_t cs_pin, const picoflight_pins_t int_pin);
 
-void icm45686_set_measurement_ranges(imu* imu_dev); // Update this
+void icm45686_set_config(const imu* imu_dev); //Applies all config values
+
+void icm45686_set_measurement_ranges(const imu* imu_dev); // Update this
 
 void icm45686_set_odr_frequency(const imu* imu_dev); // Update this
 
@@ -230,7 +236,9 @@ void icm45686_set_power_modes(const imu* imu_dev); // Update this
 
 void icm45686_set_data_endianness(const imu* imu_dev); // Update this
 
-void icm45686_set_external_clock_source(const imu* imu_dev); // Update this
+void icm45686_set_clock_source(const imu* imu_dev); // Update this
+
+void icm45686_set_interrupt1(const imu* imu_dev);
 
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
@@ -248,8 +256,6 @@ void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
 
 void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask, uint8_t cs_pin);
 
-void icm45686_configure_int1_pin(const imu* imu_dev);
-
 void icm45686_set_interrupt_pin_and_callback(const imu* imu_dev, gpio_irq_callback_t callback);
 
 void icm45686_set_cs_pin(const imu* imu_dev);
@@ -257,6 +263,9 @@ void icm45686_set_cs_pin(const imu* imu_dev);
 void icm45686_int1_callback(uint gpio, uint32_t events);
 
 void icm45686_TEST_FIFO();
+
+void icm45686_print_error(error_code_t error);
+
 
 //Some configs 
 #define ICM45686_USE_BIG_ENDIAN     0x20
