@@ -63,36 +63,178 @@ void icm45686_init()
     sleep_ms(200);                   // Let clock stabilize
 
     icm45686_configure_pins(&imu0, PF_ICM45686_0_CS, PF_ICM45686_0_INT);
+    icm45686_configure_pins(&imu1, PF_ICM45686_1_CS, PF_ICM45686_1_INT);
+    icm45686_configure_pins(&imu2, PF_ICM45686_2_CS, PF_ICM45686_2_INT);
 
     icm45686_set_cs_pin(&imu0);
+    icm45686_set_cs_pin(&imu1);
+    icm45686_set_cs_pin(&imu2);
     sleep_ms(50);
 
     icm45686_configure_default_config(&imu0, imu_fifo);
+    icm45686_configure_default_config(&imu1, imu_fifo);
+    icm45686_configure_default_config(&imu2, imu_fifo);
 
     // Apply the config struct
     icm45686_set_config(&imu0);
+    icm45686_set_config(&imu1);
+    icm45686_set_config(&imu2);
 
+    sleep_ms(2500);
+
+    int test = 0;
+    //Flush the fifo
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG2, ICM45686_FIFO_FLUSH, ICM45686_FIFO_FLUSH_MASK, imu0.imu_pins.cs_pin);
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG2, ICM45686_FIFO_FLUSH, ICM45686_FIFO_FLUSH_MASK, imu1.imu_pins.cs_pin);
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG2, ICM45686_FIFO_FLUSH, ICM45686_FIFO_FLUSH_MASK, imu2.imu_pins.cs_pin);
     while (1)
     {
+        // sleep_ms(10);
+        // icm45686_get_imu_data(&imu0);
+        // linalg_printvec(3, imu0.imu_data.gyro_data);
+
         if(imu0.imu_data.interrupt1_flag){
             imu0.imu_data.interrupt1_flag = false;
-            //Need to empty the fifo outlet register
-            int packet_count = icm45686_get_fifo_packet_count(&imu0);
-            PRINTNUM("FIFO packet count = %d\n", packet_count);
-
-            icm45686_read_from_register(ICM45686_FIFO_DATA, test_fifo_buf_tx, test_fifo_buf_rx, 20*packet_count, imu0.imu_pins.cs_pin);
-
-            //PRINTNUM("FIFO header = %u\n", test_fifo_buf_rx[1]);
-            PRINTNUM("FIFO packet count = %d\n", icm45686_get_fifo_packet_count(&imu0));
-        
-            //PRINTNUM("Counter %u\n", int1_counter);
+            test++;
+            icm45686_get_fifo_buffer(&imu0);
+            PRINT("IMU0\n");
+            for(int i = 0; i < ICM45686_FIFO_PACKET_COUNT; i++){
+                // linalg_vecscalmult(3,imu0.imu_data.fifo_array_20[i].gyro_data, imu0.imu_data.fifo_array_20[i].gyro_data, 180.0/3.14);
+                // linalg_printvec(3, imu0.imu_data.fifo_array_20[i].gyro_data);
+                PRINTNUM("i = %u: ", i);
+                PRINTNUM("t = %u\n", (uint16_t)(imu0.imu_data.fifo_array_20[i].sample_timestamp));
+            }
         }
+
+        if(imu1.imu_data.interrupt1_flag){
+            imu1.imu_data.interrupt1_flag = false;
+            test++;
+            icm45686_get_fifo_buffer(&imu1);
+
+            PRINT("IMU1\n");
+            for(int i = 0; i < ICM45686_FIFO_PACKET_COUNT; i++){
+                // linalg_vecscalmult(3,imu0.imu_data.fifo_array_20[i].gyro_data, imu0.imu_data.fifo_array_20[i].gyro_data, 180.0/3.14);
+                // linalg_printvec(3, imu0.imu_data.fifo_array_20[i].gyro_data);
+                PRINTNUM("i = %u: ", i);
+                PRINTNUM("t = %u\n", (uint16_t)(imu1.imu_data.fifo_array_20[i].sample_timestamp));
+            }
+        }
+
+        if(imu2.imu_data.interrupt1_flag){
+            imu2.imu_data.interrupt1_flag = false;
+            test-=2;
+            icm45686_get_fifo_buffer(&imu2);
+
+            PRINT("IMU2\n");
+            for(int i = 0; i < ICM45686_FIFO_PACKET_COUNT; i++){
+                // linalg_vecscalmult(3,imu0.imu_data.fifo_array_20[i].gyro_data, imu0.imu_data.fifo_array_20[i].gyro_data, 180.0/3.14);
+                // linalg_printvec(3, imu0.imu_data.fifo_array_20[i].gyro_data);
+                PRINTNUM("i = %u: ", i);
+                PRINTNUM("t = %u\n", (uint16_t)(imu2.imu_data.fifo_array_20[i].sample_timestamp));
+            }
+        }
+        PRINTNUM("test = %d\n", test);
     }
 }
 
-void icm45686_parse_20bit_fifo_frame(imu_fifo_20bit *parsed_frame, uint8_t raw_frame[19])
+void icm45686_parse_fifo_frame(imu *imu_dev, uint8_t bytes[], uint16_t byte_count)
 {
+    for(int i = 0; i < byte_count/imu_dev->imu_data.fifo_packet_size; i++){
+        int j = imu_dev->imu_data.fifo_packet_size * i + 1; //Must start at 1 because the first byte is a dummy
 
+        //Header
+        imu_dev->imu_data.fifo_array_20[i].header = bytes[j];
+
+        //Accel upper and middle
+        uint32_t accel_x_upper = bytes[j+1];
+        uint32_t accel_x_middle = bytes[j+2];
+
+        uint32_t accel_y_upper = bytes[j+3];
+        uint32_t accel_y_middle = bytes[j+4];
+
+        uint32_t accel_z_upper = bytes[j+5];
+        uint32_t accel_z_middle = bytes[j+6];
+
+        
+        uint32_t gyro_x_upper = bytes[j+7];
+        uint32_t gyro_x_middle = bytes[j+8];
+
+        uint32_t gyro_y_upper = bytes[j+9];
+        uint32_t gyro_y_middle = bytes[j+10];
+
+        uint32_t gyro_z_upper = bytes[j+11];
+        uint32_t gyro_z_middle = bytes[j+12];
+
+        
+        uint16_t temp_upper = bytes[j+13];
+        uint16_t temp_lower = bytes[j+14];
+
+        
+        uint16_t timestamp_upper = bytes[j+15];
+        uint16_t timestamp_lower = bytes[j+16];
+
+        uint32_t gyro_x_lower = bytes[j+17] & 0xF;
+        uint32_t gyro_y_lower = bytes[j+18] & 0xF;
+        uint32_t gyro_z_lower = bytes[j+19] & 0xF;
+        
+        uint32_t accel_x_lower = bytes[j+17] >> 4;
+        uint32_t accel_y_lower = bytes[j+18] >> 4;
+        uint32_t accel_z_lower = bytes[j+19] >> 4;
+
+
+        //Reconstruct the data
+
+        //There is a more elegant looking way to do the sign
+        //extension by using bit shifts, but it is implementation defined
+
+        if(accel_x_upper & (1 << 7)){
+            accel_x_upper = 0xFFFFFF00 | accel_x_upper;
+        }
+
+        if(accel_y_upper & (1 << 7)){
+            accel_y_upper = 0xFFFFFF00 | accel_y_upper;
+        }
+
+        if(accel_z_upper & (1 << 7)){
+            accel_z_upper = 0xFFFFFF00 | accel_z_upper;
+        }
+
+        int32_t acc_x =  (accel_x_upper << 12) | (accel_x_middle << 4) | (accel_x_lower);
+        int32_t acc_y =  (accel_y_upper << 12) | (accel_y_middle << 4) | (accel_y_lower);
+        int32_t acc_z =  (accel_z_upper << 12) | (accel_z_middle << 4) | (accel_z_lower);
+
+        //Always scaled to +-32g in fifo hires mode
+        imu_dev->imu_data.fifo_array_20[i].accel_data[0] =   (double)(acc_x/16384.0);
+        imu_dev->imu_data.fifo_array_20[i].accel_data[1] =   (double)(acc_y/16384.0);
+        imu_dev->imu_data.fifo_array_20[i].accel_data[2] = - (double)(acc_z/16384.0);
+
+        if(gyro_x_upper & (1 << 7)){
+            gyro_x_upper = 0xFFFFFF00 | gyro_x_upper;
+        }
+
+        if(gyro_y_upper & (1 << 7)){
+            gyro_y_upper = 0xFFFFFF00 | gyro_y_upper;
+        }
+
+        if(gyro_z_upper & (1 << 7)){
+            gyro_z_upper = 0xFFFFFF00 | gyro_z_upper;
+        }
+
+        int32_t gyro_x =  (gyro_x_upper << 12) | (gyro_x_middle << 4) | (gyro_x_lower);
+        int32_t gyro_y =  (gyro_y_upper << 12) | (gyro_y_middle << 4) | (gyro_y_lower);
+        int32_t gyro_z =  (gyro_z_upper << 12) | (gyro_z_middle << 4) | (gyro_z_lower);
+
+        //Always scaled to +-4000dps in fifo hires mode
+        double d2r = 3.14159265 / 180.0;
+        imu_dev->imu_data.fifo_array_20[i].gyro_data[0] =   gyro_x/131.1*d2r;
+        imu_dev->imu_data.fifo_array_20[i].gyro_data[1] =   gyro_y/131.1*d2r;
+        imu_dev->imu_data.fifo_array_20[i].gyro_data[2] = - gyro_z/131.1*d2r;
+
+        //Timestamp
+        imu_dev->imu_data.fifo_array_20[i].sample_timestamp = (timestamp_upper << 8) | timestamp_lower;
+
+
+    }
 }
 
 //Getters
@@ -148,6 +290,25 @@ uint16_t icm45686_get_fifo_packet_count(const imu *imu_dev)
     return count;
 }
 
+error_code_t icm45686_get_fifo_buffer(imu* imu_dev)
+{
+    error_code_t return_code = no_error;
+
+    uint16_t packet_count = icm45686_get_fifo_packet_count(imu_dev);
+    uint16_t packet_size = imu_dev->imu_data.fifo_packet_size;
+
+    if(packet_count > ICM45686_FIFO_PACKET_COUNT){
+        return_code = fifo_size_error;
+    }else{
+        icm45686_read_from_register(ICM45686_FIFO_DATA, imu_dev->imu_data.dummy_tx_bytes, imu_dev->imu_data.raw_fifo_data, packet_size*packet_count + 1, imu_dev->imu_pins.cs_pin);
+        icm45686_parse_fifo_frame(imu_dev, imu_dev->imu_data.raw_fifo_data, packet_size*packet_count);
+    }
+
+    return return_code;
+}
+
+//Setters
+
 void icm45686_set_fifo(const imu *imu_dev)
 {
     // A bit-setup sequence is provided in InvenSense's 45686 User Guide under section 3.5
@@ -183,10 +344,10 @@ void icm45686_set_fifo(const imu *imu_dev)
 
     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG0, ICM45686_FIFO_MODE , ICM45686_FIFO_MODE_MASK, imu_dev->imu_pins.cs_pin);
 
+    icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG4, ICM45686_FIFO_TMST_FSYNC_EN, ICM45686_FIFO_TMST_FSYNC_EN_MASK, imu_dev->imu_pins.cs_pin);
+
     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG3, ICM45686_FIFO_IF_EN, ICM45686_FIFO_IF_EN_MASK, imu_dev->imu_pins.cs_pin);
 }
-
-//Setters
 
 void icm45686_set_interrupt_pin_and_callback(const imu *imu_dev, gpio_irq_callback_t callback)
 {
@@ -494,7 +655,7 @@ void icm45686_set_rp2350_clock_out()
 {
     gpio_set_function(PF_ICM45686_CLOCK, GPIO_FUNC_GPCK);
     gpio_set_drive_strength(PF_ICM45686_CLOCK, GPIO_DRIVE_STRENGTH_2MA);
-    clock_gpio_init_int_frac16(PF_ICM45686_CLOCK, CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_XOSC_CLKSRC, 375, 0);
+    clock_gpio_init_int_frac16(PF_ICM45686_CLOCK, CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_XOSC_CLKSRC, 375, 0); //375,0
 }
 
 void icm45686_set_rp2350_pwm_signal()
@@ -653,9 +814,9 @@ error_code_t icm45686_configure_default_config(imu* imu_dev, imu_mode_t default_
         icm45686_configure_main_imu_mode(imu_dev, imu_fifo);
         icm45686_configure_clock_cource(imu_dev, use_external_clock);
         icm45686_configure_data_endianness(imu_dev, use_big_endian);
-        icm45686_configure_odr(imu_dev, odr_6k4, odr_6k4);
+        icm45686_configure_odr(imu_dev, odr_0k8, odr_0k8);
         icm45686_configure_measurement_ranges(imu_dev, gyro_4000dps, accel_32g);
-        icm45686_configure_fifo_frame_contents_and_watermark(imu_dev, fifo_accel_gyro_hires_20, 6);
+        icm45686_configure_fifo_frame_contents_and_watermark(imu_dev, fifo_accel_gyro_hires_20, ICM45686_FIFO_PACKET_COUNT);
         icm45686_configure_interrupt(imu_dev, enable_fifo_ready_interrupt);
         icm45686_configure_power_modes(imu_dev, power_low_noise, power_low_noise);
         break;
@@ -847,6 +1008,11 @@ error_code_t icm45686_configure_fifo_frame_contents_and_watermark(imu* imu_dev, 
         return_code = fifo_frame_invalid;
     }
 
+    //Update later to support other packet sizes if necessary
+    if(contents == fifo_accel_gyro_hires_20){
+        imu_dev->imu_data.fifo_packet_size = 20;
+    }
+
     //Currently using a 2kB fifo buffer, the watermark must be set such that it doesn't overflow
     uint16_t bytes_in_fifo = 0;
     uint16_t fifo_size = 2000;
@@ -899,178 +1065,6 @@ error_code_t icm45686_configure_pins(imu* imu_dev, const picoflight_pins_t cs_pi
     return return_code;
 }
 
-
-
-
-// void icm45686_TEST_FIFO()
-// {
-
-//     imu0.imu_cfg = imu_common_cfg;
-//     imu0.imu_pins = imu_0_pins;
-
-//     icm45686_set_rp2350_clock_out(); // This is not set on a per-imu basis as they all share clock, will keep it separate from per-imu setup
-//     sleep_ms(200);                   // Let clock stabilize
-
-//     //Init CS pin
-//     gpio_init(PF_ICM45686_0_CS);
-//     gpio_set_dir(PF_ICM45686_0_CS, GPIO_OUT); // high impedance mode
-//     gpio_put(PF_ICM45686_0_CS, 1);
-
-//     //Init the interrupt pin on the rp2350 and attach the callback
-//     gpio_init(PF_ICM45686_0_INT);
-//     gpio_set_dir(PF_ICM45686_0_INT, GPIO_IN); // high impedance mode
-//     gpio_set_irq_enabled_with_callback(PF_ICM45686_0_INT, GPIO_IRQ_EDGE_RISE, true, icm45686_int1_callback);
-    
-//     //Turn sensors off
-//     icm45686_read_modify_write_register(ICM45686_PWR_MGMT0, ICM45686_GYRO_OFF, ICM45686_GYRO_MODE_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_PWR_MGMT0, ICM45686_ACCEL_OFF, ICM45686_ACCEL_MODE_MASK, PF_ICM45686_0_CS);
-
-
-//     //Configure interrupt 1 on the icm45686 to fire on fifo watermark
-//     icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, 0x0, 0xFF, PF_ICM45686_0_CS); // Zero the register
-//     icm45686_read_modify_write_register(ICM45686_INT1_CONFIG1, 0x0, 0xFF, PF_ICM45686_0_CS); // Zero the register
-//     icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, 0x0, 7, PF_ICM45686_0_CS); // Zero the register
-//     icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, ICM45686_INT1_STATUS_EN_FIFO_THS, ICM45686_INT1_STATUS_EN_FIFO_THS_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, ICM45686_INT1_DRIVE | 
-//                                                                ICM45686_INT1_MODE | 
-//                                                                ICM45686_INT1_POLARITY, 
-//                                                                ICM45686_INT1_DRIVE_MASK | 
-//                                                                ICM45686_INT1_MODE_MASK | 
-//                                                                ICM45686_INT1_POLARITY_MASK, 
-//                                                                PF_ICM45686_0_CS); // INT1 pin behavior setup
-
-//     //Configure interrupt 1 for data ready
-//     // icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, 0x0, 0xFF, PF_ICM45686_0_CS); // Zero the register
-//     // icm45686_read_modify_write_register(ICM45686_INT1_CONFIG1, 0x0, 0xFF, PF_ICM45686_0_CS); // Zero the register
-//     // icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, 0x0, 0xFF, PF_ICM45686_0_CS); // Zero the register
-
-//     // icm45686_read_modify_write_register(ICM45686_INT1_CONFIG0, ICM45686_INT1_STATUS_EN_DRDY, ICM45686_INT1_STATUS_EN_DRDY_MASK, PF_ICM45686_0_CS); // Set data ready interrupt
-//     // icm45686_read_modify_write_register(ICM45686_INT1_CONFIG2, ICM45686_INT1_DRIVE |ICM45686_INT1_MODE | ICM45686_INT1_POLARITY, ICM45686_INT1_DRIVE_MASK | ICM45686_INT1_MODE_MASK | ICM45686_INT1_POLARITY_MASK, PF_ICM45686_0_CS); 
-
-
-
-//     //Use external clock in
-//     // Will use INT2 pin for CLKIN, how to configure it for this? Section 7.3 of ICM45686 user guide:
-//     // To use pin 9 as CLKIN, the PADS_INT2_CFG_OVRD_VAL must be set to 2 in
-//     //----->IOC_PAD_SCENARIO_OVRD, user bank 0
-//     // Must first set the OVRD bit, else it appears the VAL can not be written to
-//     icm45686_read_modify_write_register(ICM45686_IOC_PAD_SCENARIO_OVRD,
-//                                         ICM45686_PADS_INT2_CFG_OVRD,
-//                                         ICM45686_PADS_INT2_CFG_OVRD_MASK,
-//                                         PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_IOC_PAD_SCENARIO_OVRD,
-//                                         ICM45686_PADS_INT2_CFG_OVRD_VAL,
-//                                         ICM45686_PADS_INT2_CFG_OVRD_VAL_MASK,
-//                                         PF_ICM45686_0_CS);
-
-//     // Set sync timing control for accel
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1,
-//                                                  ICM45686_SMC_CONTROL_0,
-//                                                  ICM45686_ACCEL_LP_CLK_SEL,
-//                                                  ICM45686_ACCEL_LP_CLK_SEL_MASK,
-//                                                  PF_ICM45686_0_CS);
-
-//     // Next, to enable the CLKIN function, the RTC_MODE bit must be set to 1 in
-//     //----->RTC_CONFIG, user bank 0
-//     icm45686_read_modify_write_register(ICM45686_RTC_CONFIG,
-//                                         ICM45686_RTC_MODE,
-//                                         ICM45686_RTC_MODE_MASK,
-//                                         PF_ICM45686_0_CS);
-
-//     // I3C STC and CLKIN use the same interpolator but I3C has higher priority. To use CLKIN, I3C_STC_MODE must be set to 0 on
-//     //----->SIFS_I3C_STC_CFG, user bank IPREG_TOP1
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1,
-//                                                  ICM45686_SIFS_I3C_STC_CFG,
-//                                                  ICM45686_I3C_STC_MODE,
-//                                                  ICM45686_I3C_STC_MODE_MASK,
-//                                                  PF_ICM45686_0_CS);
-
-//     // ACCEL_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
-//     //----->IPREG_SYS2_REG_123, user bank IPREG_SYS2
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_SYS2,
-//                                                  ICM45686_IPREG_SYS2_REG_123,
-//                                                  ICM45686_ACCEL_SRC_CTRL,
-//                                                  ICM45686_ACCEL_SRC_CTRL_MASK,
-//                                                  PF_ICM45686_0_CS);
-
-//     // GYRO_SRC_CTRL[1:0] must be set to 0b10 (FIR and interpolator on) in
-//     //----->IPREG_SYS1_REG_166, user bank IPREG_SYS1
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_SYS1,
-//                                                  ICM45686_IPREG_SYS1_REG_166,
-//                                                  ICM45686_GYRO_SRC_CTRL,
-//                                                  ICM45686_GYRO_SRC_CTRL_MASK,
-//                                                  PF_ICM45686_0_CS);
-
-    
-
-//     //Set measurement ranges
-//     icm45686_read_modify_write_register(ICM45686_GYRO_CONFIG0, ICM45686_GYRO_FS_4000, ICM45686_GYRO_FS_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_ACCEL_CONFIG0, ICM45686_ACCEL_FS_32G, ICM45686_ACCEL_FS_MASK, PF_ICM45686_0_CS);
-
-//     //Set ODR
-//     icm45686_read_modify_write_register(ICM45686_GYRO_CONFIG0, ICM45686_GYRO_ODR_6K4, ICM45686_GYRO_ODR_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_ACCEL_CONFIG0, ICM45686_ACCEL_ODR_6K4, ICM45686_ACCEL_ODR_MASK, PF_ICM45686_0_CS);
-
-//     //Set data endianness
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, 1 << ICM45686_SREG_DATA_ENDIAN_SEL, 1 << ICM45686_SREG_DATA_ENDIAN_SEL, PF_ICM45686_0_CS);
-
-//     //Enable the sensors
-//     icm45686_read_modify_write_register(ICM45686_PWR_MGMT0, ICM45686_GYRO_LOW_NOISE, ICM45686_GYRO_MODE_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_PWR_MGMT0, ICM45686_ACCEL_LOW_NOISE, ICM45686_ACCEL_MODE_MASK, PF_ICM45686_0_CS);
-
-//     sleep_ms(40); // Takes the gyro 35ms to start
-
-    
-//     //Setup FIFO
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG3, 0, ICM45686_FIFO_HIRES_EN_MASK |
-//                                                                   ICM45686_FIFO_GYRO_EN_MASK | 
-//                                                                   ICM45686_FIFO_ACCEL_EN_MASK |
-//                                                                   ICM45686_FIFO_IF_EN_MASK,
-//                                                                   PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG0, 0, ICM45686_FIFO_MODE_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SMC_CONTROL_0, ICM45686_TMST_EN, ICM45686_TMST_EN_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_0, ICM45686_FIFO_WM_TH_7_0, ICM45686_FIFO_WM_TH_7_0_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG1_1, ICM45686_FIFO_WM_TH_15_8, ICM45686_FIFO_WM_TH_15_8_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG2, ICM45686_FIFO_WR_WM_GT_TH, ICM45686_FIFO_WR_WM_GT_TH_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG3, ICM45686_FIFO_GYRO_EN | 
-//                                                                ICM45686_FIFO_ACCEL_EN | 
-//                                                                ICM45686_FIFO_HIRES_EN, 
-//                                                                ICM45686_FIFO_GYRO_EN_MASK | 
-//                                                                ICM45686_FIFO_ACCEL_EN_MASK | 
-//                                                                ICM45686_FIFO_HIRES_EN_MASK, PF_ICM45686_0_CS);
-  
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG0, ICM45686_FIFO_DEPTH_2K, ICM45686_FIFO_DEPTH_MASK, PF_ICM45686_0_CS);
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG0, ICM45686_FIFO_MODE , ICM45686_FIFO_MODE_MASK, PF_ICM45686_0_CS);
-
-//     icm45686_read_modify_write_register(ICM45686_FIFO_CONFIG3, ICM45686_FIFO_IF_EN, ICM45686_FIFO_IF_EN_MASK, PF_ICM45686_0_CS);
-   
-//     sleep_ms(50);
-
-//     while(true)
-//     {
-//         //PRINTNUM("Counter = %lu\n ", int1_counter);
-//         //PRINTNUM("GPIO = %lu\n", pin);
-//         if (fifo_flag){
-//             fifo_flag = 0;
-//             int packet_count = icm45686_get_fifo_packet_count(&imu0);
-//             PRINTNUM("FIFO packet count = %d\n", packet_count);
-
-//             icm45686_read_from_register(ICM45686_FIFO_DATA, test_fifo_buf_tx, test_fifo_buf_rx, 20*packet_count, imu0.imu_pins.cs_pin);
-
-//             //PRINTNUM("FIFO header = %u\n", test_fifo_buf_rx[1]);
-//             PRINTNUM("FIFO packet count = %d\n", icm45686_get_fifo_packet_count(&imu0));
-//         }
-//     }
-// }
-
 void icm45686_print_error(error_code_t error)
 {
     switch (error)
@@ -1111,6 +1105,10 @@ void icm45686_print_error(error_code_t error)
         PRINT("ICM FIFO BUFFER OVERFLOW\n");
         break;
 
+    case fifo_size_error:
+        PRINT("ICM FIFO SIZE ERROR\n");
+        break;
+
     case pin_invalid:
         PRINT("ICM PIN INVALID\n");
         break;
@@ -1128,6 +1126,8 @@ void icm45686_print_error(error_code_t error)
         break;
     }
 }
+
+//SPI comms
 
 void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t *ireg_value, uint8_t cs_pin)
 {

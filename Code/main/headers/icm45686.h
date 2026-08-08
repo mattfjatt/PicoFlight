@@ -9,19 +9,22 @@
 #include "hardware/clocks.h"
 #include "string.h"
 
+#define ICM45686_FIFO_PACKET_COUNT 6
+
 typedef enum error_code_t{
     no_error,
-    fs_invalid,
-    odr_invalid,
-    power_mode_invalid,
-    endian_invalid,
-    clock_source_invalid,
-    main_imu_mode_invalid,
-    fifo_frame_invalid,
-    fifo_buffer_overflow,
-    pin_invalid,
-    interrupt_invalid,
-    default_config_invalid
+    fs_invalid,             //Invalid sensor full scale selected
+    odr_invalid,            //Invalid sesnor sampling rate selected
+    power_mode_invalid,     //Invalid power mode selected
+    endian_invalid,         //Invalid endian selected
+    clock_source_invalid,   //Invalid clock source selected
+    main_imu_mode_invalid,  //Invalid main imu mode
+    fifo_frame_invalid,     //Invalid fifo frame selected, see fifo_frame_contents_t
+    fifo_buffer_overflow,   //Fifo buffer size is selected that exceeds maximum supported
+    fifo_size_error,        //The available fifo buffer length exceeds the configured fifo packet count
+    pin_invalid,            //Invalid CS pin or INT pin
+    interrupt_invalid,      //Invalid interrupt source selected
+    default_config_invalid  //Invalid default config selected
 }error_code_t;
 
 typedef enum imu_mode_t{
@@ -89,72 +92,18 @@ typedef enum interrupt_t{
 
 
 typedef struct imu_fifo_20bit{
-    uint8_t accel_x_upper, accel_x_middle;
-    uint8_t accel_y_upper, accel_y_middle;
-    uint8_t accel_z_upper, accel_z_middle;
-
-    uint8_t gyro_x_upper, gyro_x_middle;
-    uint8_t gyro_y_upper, gyro_y_middle;
-    uint8_t gyro_z_upper, gyro_z_middle;
-
-    uint8_t temp_upper, temp_lower;
-
-    uint8_t timestamp_upper, timestamp_lower;
-
-    //Contains lower 4 bits for 19 bit accel. LSB is always 0
-    uint8_t accel_x_lower;
-    uint8_t accel_y_lower;
-    uint8_t accel_z_lower;
-
-    //Contains lower 4 bits for 20 bit gyro.
-    uint8_t gyro_x_lower;
-    uint8_t gyro_y_lower;
-    uint8_t gyro_z_lower;
-
+    uint8_t header;
+    //Reconstructed data
+    double gyro_data[3];
+    double accel_data[3];
+    uint16_t sample_timestamp;
+    uint16_t sample_temperature;
 }imu_fifo_20bit;
 
 typedef struct imu_pins{
     picoflight_pins_t cs_pin;
     picoflight_pins_t int_pin;
 }imu_pins;
-
-typedef struct fifo_config{
-    fifo_frame_contents_t frame_contents;
-    
-    // //"Enable/Disables" are used as booleans, others are used as full bytes.
-
-    // //No fifo setup will be performed unless this is true.
-    // uint8_t fifo_enabled;
-
-    // //FIFO_CONFIG0
-    // uint8_t fifo_mode;
-    // uint8_t fifo_depth;
-
-    // //FIFO_CONFIG1_0
-    // uint8_t fifo_wm_th_7_0;
-
-    // //FIFO_CONFIG1_1
-    // uint8_t fifo_wm_th_15_8;
-
-    // //FIFO_CONFIG2
-    // uint8_t fifo_flush;
-    // uint8_t fifo_wr_wm_gt_th;
-
-    // //FIFO_CONFIG3
-    // uint8_t fifo_es1_en;
-    // uint8_t fifo_es0_en;
-    // uint8_t fifo_hires_en;
-    // uint8_t fifo_gyro_en;
-    // uint8_t fifo_accel_en;
-    // uint8_t fifo_if_en;
-
-    // //FIFO_CONFIG4
-    // uint8_t fifo_comp_nc_flow_cfg;
-    // uint8_t fifo_comp_en;
-    // uint8_t fifo_tmst_fsync_en;
-    // uint8_t fifo_es0_6b_9b;
-
-}fifo_config;
 
 typedef struct imu_config{
     gyro_measurement_range_t gyro_fs;
@@ -179,7 +128,10 @@ typedef struct imu_data{
     double gyro_data[3];
     double accel_data[3];
     bool interrupt1_flag;
-    imu_fifo_20bit fifo_array[0x06]; //<-- Length of array tied to ICM45686_FIFO_WM_TH_7_0/15_8?
+    imu_fifo_20bit fifo_array_20[ICM45686_FIFO_PACKET_COUNT];
+    uint8_t raw_fifo_data[20*ICM45686_FIFO_PACKET_COUNT+1]; //Yeah this needs to be better
+    uint8_t dummy_tx_bytes[20*ICM45686_FIFO_PACKET_COUNT+1]; //Need to send some shit to get the good stuff back
+    uint16_t fifo_packet_size; //Size of the packet, currently 20
 }imu_data;
 
 typedef struct imu{
@@ -196,11 +148,15 @@ void icm45686_init();
 
 void icm45686_configure_int_for_fifo(const imu* imu_dev);
 
+void icm45686_parse_fifo_frame(imu *imu_dev, uint8_t bytes[], uint16_t byte_count);
+
+//Getters
+
 uint16_t icm45686_get_fifo_packet_count(const imu* imu_dev); //Returns amount of data frames ready to be read
 
-void icm45686_parse_20bit_fifo_frame(imu_fifo_20bit* parsed_frame, uint8_t raw_frame[19]);
-
 void icm45686_get_imu_data(imu* imu_dev);
+
+error_code_t icm45686_get_fifo_buffer(imu* imu_dev);
 
 //The "configure" functions update the struct while the "set" functions write the value to the IMU
 
@@ -224,6 +180,8 @@ error_code_t icm45686_configure_main_imu_mode(imu* imu_dev, const imu_mode_t mod
 
 error_code_t icm45686_configure_pins(imu* imu_dev, const picoflight_pins_t cs_pin, const picoflight_pins_t int_pin);
 
+//Setters, applies the configs to an imu
+
 void icm45686_set_config(const imu* imu_dev); //Applies all config values
 
 void icm45686_set_measurement_ranges(const imu* imu_dev); // Update this
@@ -240,6 +198,10 @@ void icm45686_set_interrupt1(const imu* imu_dev);
 
 void icm45686_set_fifo(const imu* imu_dev);
 
+void icm45686_set_interrupt_pin_and_callback(const imu* imu_dev, gpio_irq_callback_t callback);
+
+void icm45686_set_cs_pin(const imu* imu_dev);
+
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
 void icm45686_set_rp2350_clock_out();
@@ -255,10 +217,6 @@ void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_
 void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t cs_pin);
 
 void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask, uint8_t cs_pin);
-
-void icm45686_set_interrupt_pin_and_callback(const imu* imu_dev, gpio_irq_callback_t callback);
-
-void icm45686_set_cs_pin(const imu* imu_dev);
 
 void icm45686_int1_callback(uint gpio, uint32_t events);
 
